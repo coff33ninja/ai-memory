@@ -11,7 +11,7 @@ import (
 	"github.com/coff33ninja/ai-memory/internal/skills"
 )
 
-func handleStore(mem *memory.Store, sharedMem *memory.Store, args map[string]interface{}) (interface{}, error) {
+func handleStore(mem *memory.Store, sharedMem *memory.Store, searcher *rag.Searcher, args map[string]interface{}) (interface{}, error) {
 	experience, _ := args["experience"].(string)
 	lesson, _ := args["lesson"].(string)
 	if experience == "" || lesson == "" {
@@ -33,6 +33,10 @@ func handleStore(mem *memory.Store, sharedMem *memory.Store, args map[string]int
 		if err != nil {
 			return nil, err
 		}
+		// Generate embedding immediately so search finds it
+		if searcher != nil {
+			searcher.EmbedSharedMemory(m.ID, experience+" "+lesson)
+		}
 		return fmt.Sprintf("Memory %d stored [shared]. Shared memories are visible to all personas.", m.ID), nil
 	}
 
@@ -40,6 +44,10 @@ func handleStore(mem *memory.Store, sharedMem *memory.Store, args map[string]int
 	m, err := mem.Store(experience, lesson, tags, scope)
 	if err != nil {
 		return nil, err
+	}
+	// Generate embedding immediately so search finds it
+	if searcher != nil {
+		searcher.EmbedMemory(m.ID, experience+" "+lesson)
 	}
 	return fmt.Sprintf("Memory %d stored [%s]. %d total, %d pending.", m.ID, m.Scope, countAll(mem), countPending(mem)), nil
 }

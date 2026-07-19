@@ -238,6 +238,40 @@ func (s *Searcher) Reindex() (int, int, error) {
 	return memCount, skillCount, nil
 }
 
+// EmbedMemory generates an embedding for a single memory by ID and updates it in the persona DB.
+func (s *Searcher) EmbedMemory(id int64, text string) {
+	if s.emb == nil {
+		return
+	}
+	if len(text) > embedding.MaxChunkLen {
+		text = text[:embedding.MaxChunkLen]
+	}
+	emb, err := s.emb.Compute(text)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warn: embed memory %d: %v\n", id, err)
+		return
+	}
+	blob := embedding.Float32ToBytes(emb)
+	s.db.Conn().Exec("UPDATE memories SET embedding = ? WHERE id = ?", blob, id)
+}
+
+// EmbedSharedMemory generates an embedding for a single memory by ID in the shared DB.
+func (s *Searcher) EmbedSharedMemory(id int64, text string) {
+	if s.emb == nil || s.sharedDB == nil {
+		return
+	}
+	if len(text) > embedding.MaxChunkLen {
+		text = text[:embedding.MaxChunkLen]
+	}
+	emb, err := s.emb.Compute(text)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warn: embed shared memory %d: %v\n", id, err)
+		return
+	}
+	blob := embedding.Float32ToBytes(emb)
+	s.sharedDB.Conn().Exec("UPDATE memories SET embedding = ? WHERE id = ?", blob, id)
+}
+
 func (s *Searcher) searchSharedMemories(queryEmb []float32, topK int) ([]db.SearchResult, error) {
 	if s.sharedDB == nil {
 		return nil, nil

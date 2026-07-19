@@ -220,7 +220,7 @@ func main() {
 			if sharedDB != nil {
 				sharedMem = memory.New(sharedDB)
 			}
-			return handleStore(store, sharedMem, args)
+			return handleStore(store, sharedMem, searcher, args)
 		case "review":
 			return handleReview(store)
 		case "apply":
