@@ -1,5 +1,16 @@
 # ai-memory
 
+<p align="center">
+  <a href="https://go.dev"><img src="https://img.shields.io/github/go-mod/go-version/coff33ninja/ai-memory?logo=go&labelColor=2d333b" alt="Go version"></a>
+  <a href="https://github.com/coff33ninja/ai-memory/releases"><img src="https://img.shields.io/github/v/release/coff33ninja/ai-memory?logo=github&labelColor=2d333b&color=orange" alt="Release"></a>
+  <a href="https://github.com/coff33ninja/ai-memory/actions"><img src="https://img.shields.io/github/actions/workflow/status/coff33ninja/ai-memory/ci.yml?branch=main&logo=github&labelColor=2d333b" alt="CI"></a>
+  <a href="https://github.com/coff33ninja/ai-memory"><img src="https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white&labelColor=2d333b" alt="Windows"></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Server-5B5BD6?logoColor=white&labelColor=2d333b" alt="MCP"></a>
+  <a href="https://github.com/coff33ninja/ai-memory/commits/main"><img src="https://img.shields.io/github/last-commit/coff33ninja/ai-memory?labelColor=2d333b&color=yellowgreen" alt="Last commit"></a>
+  <a href="https://github.com/coff33ninja/ai-memory/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?labelColor=2d333b" alt="PRs welcome"></a>
+  <a href="https://coff33ninja.github.io/ai-memory/"><img src="https://img.shields.io/badge/docs-gh--pages-blue?labelColor=2d333b&logo=github" alt="Docs"></a>
+</p>
+
 MCP server that gives AI assistants persistent memory, semantic search, skill recall, and self-evolution across sessions.
 
 ## What It Does
@@ -491,3 +502,23 @@ The project follows an atomic commit + conventional commits workflow:
 6. Run `scripts/push-and-release.ps1` to handle commit, tag, push, and release creation
 
 Never push directly — always use the push-and-release script. This ensures proper tagging, release workflow, and binary distribution.
+
+---
+
+<sub><sup>
+this whole thing started because an AI assistant kept forgetting what it learned yesterday. so naturally, the solution was to build it a hippocampus in Go. sqlite for memory, embeddings for recall, and a self-evolution loop that makes the agent slightly less forgetful every 10 interactions. the skills repository is basically a curated library of "things AI should know but doesn't" — anti-hallucination, anti-slop, code-simplification, and 47 other skills that prevent the model from writing poetry when it should be writing tests.
+
+the companion project [`go-mcp-computer-use`](https://github.com/coff33ninja/go-mcp-computer-use) handles the "eyes and hands" — mouse, keyboard, screenshots, window management. this one handles the "brain" — memory, skills, and self-improvement. together they form a reasonably competent digital assistant that can both act and remember. neither is particularly useful alone, but combined, the AI can actually learn from its mistakes instead of repeating them forever.
+
+the persona system means you can have a debugger that remembers crash patterns, a writer that knows your documentation style, and a general assistant that knows your name — all in the same session, switching based on a single keyword. it's like having multiple specialized AIs that share a common skill library but keep their own notebooks.
+
+"but does it run in production?" — technically yes, on the user's machine, as a child process. it's not a cloud service, it's not a cluster, it's a single binary that sits in the background and quietly remembers everything the AI learns. the user's data stays on their machine. no telemetry, no cloud sync, no subscription. just a SQLite database in `%USERPROFILE%\.ai-memory\` and a binary that does its job.
+
+the self-evolution is the weirdest part. every 10 interactions, the AI reviews its own performance, consolidates memories, discovers new skills, and updates its behavioral rules. it's not sentient, it's just a loop that runs `analyze → consolidate → discover → adapt`. but from the user's perspective, the assistant gets slightly better at their specific use case over time. that's the point.
+
+"how many MCP tools does it have?" — 44. because apparently that's what it takes to give an AI a proper memory system. there are tools for storing, searching, reviewing, evolving, profiling, and managing personas. there's even a tool for generating tool documentation automatically. it's tools all the way down.
+
+**MCP server? more like MCP server, please.**
+
+*p.s. the ai wrote this footer. and the docs. and most of the code. and it's still not sure if it's a feature or a bug. the skills repository has a skill called "writing-quality-anti-slop" which is ironic because this footer is definitely slop. but it's honest slop.*
+</sup></sub>

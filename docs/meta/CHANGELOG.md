@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Expanded design philosophy section in README: core principles, architectural patterns (cascading lookup, SQLite universal store, embedding-on-write, auto-consolidation, graceful degradation, panic recovery, file-based logging, CI/CD enforcement), and development workflow documentation
+- Badge labels at top of README (Go version, release, CI, Windows, MCP, last commit, PRs welcome, docs)
 - Cross-reference to companion project go-mcp-computer-use
+- AI fun comments footer (honest slop edition)
 
 ## [0.1.3] - 2026-07-19
 
