@@ -1,7 +1,7 @@
-title: go-mcp-computer-use
-description: MCP server for Windows desktop computer use
+title: ai-memory
+description: MCP server that gives AI assistants persistent memory, semantic search, skill recall, and self-evolution across sessions
 remote_theme: pages-themes/hacker@v0.2.0
 plugins:
   - jekyll-remote-theme
-logo: https://raw.githubusercontent.com/coff33ninja/go-mcp-computer-use/v0.2.x/app.ico
+logo: icons/app.ico
 show_downloads: true
