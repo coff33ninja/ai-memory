@@ -242,6 +242,18 @@ func handlePersonaStartupPrompt(pm *persona.Manager, mem *memory.Store, skillsSt
 		sb.WriteString("\n")
 	}
 
+	// User profile
+	profiles, _ := mem.ListUserProfile()
+	if len(profiles) > 0 {
+		sb.WriteString("## User Profile\n")
+		for _, p := range profiles {
+			sb.WriteString(fmt.Sprintf("- %s: %s\n", p.Field, p.Value))
+		}
+		sb.WriteString("\nUse this to personalize responses. When you learn more about the user, call `store_user_profile`.\n\n")
+	} else {
+		sb.WriteString("## User Profile\nNo data yet. As you interact with the user, learn their name, interests, and preferences, then call `store_user_profile` to remember them.\n\n")
+	}
+
 	sb.WriteString("BEFORE answering, call `search` with the user's query to pull in relevant context.\n")
 	sb.WriteString("When you learn something important, call `store` to save it.\n")
 

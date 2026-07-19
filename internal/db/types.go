@@ -70,3 +70,13 @@ func NewMemory(experience, lesson string, tags []string) *Memory {
 		UpdatedAt:  now,
 	}
 }
+
+type UserProfile struct {
+	ID         int64   `json:"id"`
+	Field      string  `json:"field"`
+	Value      string  `json:"value"`
+	Source     string  `json:"source"`
+	Confidence float64 `json:"confidence"`
+	CreatedAt  string  `json:"created_at"`
+	UpdatedAt  string  `json:"updated_at"`
+}

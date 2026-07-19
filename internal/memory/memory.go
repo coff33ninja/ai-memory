@@ -183,3 +183,65 @@ func scanMemories(rows *sql.Rows) ([]db.Memory, error) {
 	}
 	return memories, rows.Err()
 }
+
+func (s *Store) SetUserProfile(field, value, source string, confidence float64) (*db.UserProfile, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	if source == "" {
+		source = "inferred"
+	}
+	if confidence <= 0 {
+		confidence = 0.5
+	}
+	_, err := s.db.Conn().Exec(
+		`INSERT INTO user_profiles (field, value, source, confidence, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(field) DO UPDATE SET
+		   value = excluded.value,
+		   source = excluded.source,
+		   confidence = MAX(user_profiles.confidence, excluded.confidence),
+		   updated_at = excluded.updated_at`,
+		field, value, source, confidence, now, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("set user profile: %w", err)
+	}
+	return &db.UserProfile{Field: field, Value: value, Source: source, Confidence: confidence, CreatedAt: now, UpdatedAt: now}, nil
+}
+
+func (s *Store) GetUserProfile(field string) (*db.UserProfile, error) {
+	p := &db.UserProfile{}
+	err := s.db.Conn().QueryRow(
+		"SELECT id, field, value, source, confidence, created_at, updated_at FROM user_profiles WHERE field = ?", field,
+	).Scan(&p.ID, &p.Field, &p.Value, &p.Source, &p.Confidence, &p.CreatedAt, &p.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user profile: %w", err)
+	}
+	return p, nil
+}
+
+func (s *Store) ListUserProfile() ([]db.UserProfile, error) {
+	rows, err := s.db.Conn().Query(
+		"SELECT id, field, value, source, confidence, created_at, updated_at FROM user_profiles ORDER BY field",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list user profile: %w", err)
+	}
+	defer rows.Close()
+	var profiles []db.UserProfile
+	for rows.Next() {
+		var p db.UserProfile
+		if err := rows.Scan(&p.ID, &p.Field, &p.Value, &p.Source, &p.Confidence, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		profiles = append(profiles, p)
+	}
+	return profiles, rows.Err()
+}
+
+func (s *Store) DeleteUserProfile(field string) error {
+	_, err := s.db.Conn().Exec("DELETE FROM user_profiles WHERE field = ?", field)
+	return err
+}

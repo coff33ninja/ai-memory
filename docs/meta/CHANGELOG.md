@@ -5,6 +5,16 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-19
+
+### Added
+- User profile system: store, get, list, delete user profile fields
+- `user_profiles` table with field/value/source/confidence schema
+- 4 new MCP tools: `store_user_profile`, `get_user_profile`, `list_user_profile`, `delete_user_profile`
+- `user://profile` resource for reading user profile as text
+- User profile auto-included in `context://startup` and `persona-startup` prompt
+- `persona-startup` prompt added (7th prompt)
+
 ## [0.1.0] - 2026-07-19
 
 ### Added

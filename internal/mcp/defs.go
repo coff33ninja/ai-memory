@@ -446,6 +446,47 @@ var DefaultTools = []ToolDef{
 			"properties": map[string]interface{}{},
 		},
 	},
+	{
+		Name:        "store_user_profile",
+		Description: "Store a user profile field — build user knowledge incrementally from interactions",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"field":      map[string]interface{}{"type": "string", "description": "Profile field name (e.g. 'name', 'hobbies', 'interests', 'favorite_color')"},
+				"value":      map[string]interface{}{"type": "string", "description": "Value for this field"},
+				"source":     map[string]interface{}{"type": "string", "description": "How this was learned (e.g. 'conversation', 'inferred', 'stated') (default: inferred)"},
+				"confidence": map[string]interface{}{"type": "number", "description": "Confidence level 0.0-1.0 (default 0.5)"},
+			},
+			"required": []string{"field", "value"},
+		},
+	},
+	{
+		Name:        "get_user_profile",
+		Description: "Get a specific user profile field",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"field": map[string]interface{}{"type": "string", "description": "Profile field name"},
+			},
+			"required": []string{"field"},
+		},
+	},
+	{
+		Name:        "list_user_profile",
+		Description: "List all stored user profile fields",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+	},
+	{
+		Name:        "delete_user_profile",
+		Description: "Delete a user profile field",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"field": map[string]interface{}{"type": "string", "description": "Profile field name to delete"},
+			},
+			"required": []string{"field"},
+		},
+	},
 }
 
 var DefaultResources = []ResourceDef{
@@ -461,6 +502,7 @@ var DefaultResources = []ResourceDef{
 	{URI: "persona://all", Name: "All Personas", Description: "List of all personas with their identities", MimeType: "application/json"},
 	{URI: "evolution://stats", Name: "Evolution Stats", Description: "Interaction performance and evolution stats for active persona", MimeType: "application/json"},
 	{URI: "evolution://rules", Name: "Evolved Rules", Description: "Behavioral rules learned from experience", MimeType: "text/plain"},
+	{URI: "user://profile", Name: "User Profile", Description: "What the AI knows about this user — name, interests, preferences", MimeType: "text/plain"},
 }
 
 var DefaultTemplates = []TemplateDef{
@@ -476,4 +518,5 @@ var DefaultPrompts = []PromptDef{
 	{Name: "skill-usage-recorder", Description: "Instructs AI to record which skills were used and with what companions"},
 	{Name: "evolution-loop", Description: "Instructs AI to log interactions and trigger self-evolution"},
 	{Name: "mcp-error-handling", Description: "Guide for handling MCP tool errors — log, report, resolve"},
+	{Name: "persona-startup", Description: "Persona-specific startup context with user profile"},
 }

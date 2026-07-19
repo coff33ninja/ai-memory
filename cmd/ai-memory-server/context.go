@@ -233,6 +233,18 @@ func handleContextStartup(pm *persona.Manager, mem *memory.Store, skillsStore *s
 	sb.WriteString(fmt.Sprintf("Memory: %d entries, %d pending review\n", ms.MemoryCount, ms.PendingCount))
 	sb.WriteString(fmt.Sprintf("Skills: %d indexed, %d relevant to this project\n\n", len(all), len(relevant)))
 
+	// User profile
+	profiles, _ := mem.ListUserProfile()
+	if len(profiles) > 0 {
+		sb.WriteString("## User Profile\n")
+		for _, p := range profiles {
+			sb.WriteString(fmt.Sprintf("  %s: %s\n", p.Field, p.Value))
+		}
+		sb.WriteString("\n")
+	} else {
+		sb.WriteString("## User Profile\n  No user profile data yet. Learn about the user from conversations and use `store_user_profile` to remember their name, interests, and preferences.\n\n")
+	}
+
 	if len(pending) > 0 {
 		sb.WriteString("## Pending Reviews\n")
 		for _, m := range pending {

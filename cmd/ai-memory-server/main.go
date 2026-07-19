@@ -301,6 +301,14 @@ func main() {
 			return handleGetMCPServer(eng, pm, args)
 		case "list_mcp_servers":
 			return handleListMCPServers(eng, pm)
+		case "store_user_profile":
+			return handleStoreUserProfile(store, args)
+		case "get_user_profile":
+			return handleGetUserProfile(store, args)
+		case "list_user_profile":
+			return handleListUserProfile(store, args)
+		case "delete_user_profile":
+			return handleDeleteUserProfile(store, args)
 		default:
 			return nil, fmt.Errorf("unknown tool: %s", name)
 		}
@@ -331,6 +339,8 @@ func main() {
 			return handleEvolutionStats(pm, eng)
 		case uri == "evolution://rules":
 			return handleGetEvolvedRules(eng, pm)
+		case uri == "user://profile":
+			return handleUserProfileResource(store)
 		default:
 			return nil, fmt.Errorf("unknown resource: %s", uri)
 		}

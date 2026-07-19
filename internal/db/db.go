@@ -165,6 +165,19 @@ CREATE INDEX IF NOT EXISTS idx_tool_errors_persona ON tool_errors(persona);
 CREATE INDEX IF NOT EXISTS idx_tool_errors_tool ON tool_errors(tool_name);
 CREATE INDEX IF NOT EXISTS idx_tool_errors_resolved ON tool_errors(resolved);
 CREATE INDEX IF NOT EXISTS idx_mcp_servers_name ON mcp_servers(name);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	field       TEXT    NOT NULL,
+	value       TEXT    NOT NULL,
+	source      TEXT    NOT NULL DEFAULT 'inferred',
+	confidence  REAL    NOT NULL DEFAULT 0.5,
+	created_at  TEXT    NOT NULL,
+	updated_at  TEXT    NOT NULL,
+	UNIQUE(field)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_profiles_field ON user_profiles(field);
 `
 
 type DB struct {
