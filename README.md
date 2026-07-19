@@ -10,9 +10,11 @@ ai-memory runs as a child process (stdio transport) and exposes four systems to 
 
 **Skills** — 51+ AI skills cloned from a curated repository. Indexed in SQLite with ONNX embeddings so the AI can semantic-search for "how to debug a race condition" and get the right skill even if the exact words don't match.
 
-**Multi-Persona** — Separate memory databases per persona. A "debugger" persona learns about crash analysis. A "writer" persona learns about documentation patterns. They share a common skills index and can share memories via scope.
+**Multi-Persona** — Separate memory databases per persona. A "debugger" persona learns about crash analysis. A "writer" persona learns about documentation patterns. They share a common skills index and can share memories via scope. Each persona can have a greeting keyword (e.g. "Akeno") — when the user says it, the AI switches to that persona automatically.
 
 **Self-Evolution** — The AI tracks interaction outcomes (scored 1-5), consolidates similar memories, adapts its own tone and skill set, discovers new skills from usage patterns, and builds a tool manual from experience. After every 10 interactions, it evolves.
+
+**User Profiles** — The AI builds a profile on the user (name, hobbies, interests, preferences) incrementally from conversations. Each field has a source and confidence score. Profiles are included in startup context so every session knows who it's talking to.
 
 ## Prerequisites
 
@@ -89,9 +91,12 @@ onboard(
   identity: "General-purpose coding assistant",
   tone: "direct",
   description: "Helps with all kinds of software engineering tasks",
+  greeting: "Akeno",
   skills: ["debugging-and-error-recovery", "code-review"]
 )
 ```
+
+The `greeting` field is optional — when set, the AI will switch to this persona when the user says that keyword (e.g. "hello Akeno").
 
 This:
 - Creates `%USERPROFILE%\.ai-memory\assistant\memory.db` with the memory schema
@@ -123,6 +128,35 @@ delete_persona(name: "old-persona")
 ```
 
 Renamed to `.old-persona.deleted` (not truly deleted, just hidden).
+
+### User Profiles
+
+The AI learns about you over time and stores it in your profile. This data persists across sessions and is included in startup context.
+
+**Store a profile field:**
+
+```
+store_user_profile(
+  field: "name",
+  value: "Dragohn",
+  source: "stated",
+  confidence: 1.0
+)
+```
+
+**Get a profile field:**
+
+```
+get_user_profile(field: "name")
+```
+
+**List all profile fields:**
+
+```
+list_user_profile()
+```
+
+Fields are unique — storing the same field again updates the value and increases confidence. Sources: `stated` (user said it directly), `inferred` (AI figured it out), `conversation` (learned during chat).
 
 ### How Memories Work
 
@@ -284,7 +318,7 @@ register_mcp_server(
 
 ## MCP Interface
 
-### Tools (40)
+### Tools (44)
 
 | Category | Tool | Purpose |
 |----------|------|---------|
@@ -328,8 +362,12 @@ register_mcp_server(
 | **MCP Registry** | `register_mcp_server` | Register server capabilities |
 | | `get_mcp_server` | Get server info |
 | | `list_mcp_servers` | List known servers |
+| **User Profile** | `store_user_profile` | Store a user profile field |
+| | `get_user_profile` | Get a profile field |
+| | `list_user_profile` | List all profile fields |
+| | `delete_user_profile` | Delete a profile field |
 
-### Resources (12)
+### Resources (13)
 
 | URI | Description |
 |-----|-------------|
@@ -345,6 +383,7 @@ register_mcp_server(
 | `persona://all` | All personas |
 | `evolution://stats` | Interaction stats and performance |
 | `evolution://rules` | Adapted behavior rules |
+| `user://profile` | User profile data |
 
 ### Prompts (7)
 
