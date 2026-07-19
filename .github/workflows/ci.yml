@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Lint
+        shell: pwsh
+        run: ./scripts/lint.ps1
+
+      - name: Regenerate tools.md
+        shell: pwsh
+        run: go run ./scripts/gen-tools-doc.go
+
+      - name: Check tool docs are up to date
+        shell: pwsh
+        run: |
+          $stale = git diff --name-only docs/reference/tools.md
+          if ($stale) {
+            Write-Host "ERROR: docs/reference/tools.md is stale. Run 'go run ./scripts/gen-tools-doc.go' and commit."
+            git diff $stale
+            exit 1
+          } else {
+            Write-Host "docs up to date"
+          }
+
+      - name: Check go.mod is tidy
+        shell: pwsh
+        run: |
+          go mod tidy
+          $diff = git diff --name-only go.mod go.sum
+          if ($diff) {
+            Write-Host "ERROR: go.mod or go.sum is not tidy. Run 'go mod tidy' and commit."
+            git diff go.mod go.sum
+            exit 1
+          } else {
+            Write-Host "go.mod is tidy"
+          }
+
+  build:
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Install Zig
+        shell: pwsh
+        run: |
+          $url = "https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip"
+          $zip = "$env:TEMP\zig.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath "$env:ProgramFiles" -Force
+          echo "$env:ProgramFiles\zig-x86_64-windows-0.16.0" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Build with Zig cc + CGO
+        shell: pwsh
+        run: ./scripts/build.ps1
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-memory-server-windows-${{ github.sha }}
+          path: ai-memory-server.exe
+          compression-level: 0
+          if-no-files-found: error

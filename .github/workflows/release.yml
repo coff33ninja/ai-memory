@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $ver = (Get-Content VERSION -Raw).Trim()
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          if ($ver -ne $tag) {
+            Write-Error "VERSION ($ver) does not match tag ($tag)"
+            exit 1
+          }
+          echo "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Lint
+        shell: pwsh
+        run: ./scripts/lint.ps1
+
+      - name: Regenerate tools.md
+        shell: pwsh
+        run: go run ./scripts/gen-tools-doc.go
+
+      - name: Install Zig
+        shell: pwsh
+        run: |
+          $url = "https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip"
+          $zip = "$env:TEMP\zig.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath "$env:ProgramFiles" -Force
+          echo "$env:ProgramFiles\zig-x86_64-windows-0.16.0" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Build release (CGO + Zig)
+        run: |
+          $env:CGO_ENABLED = "1"
+          $env:CC = "zig cc"
+          $env:CGO_CFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
+          $env:CGO_LDFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ai-memory-server.exe ./cmd/ai-memory-server/
+
+      - name: Extract changelog
+        id: changelog
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $changelogPath = "docs/meta/CHANGELOG.md"
+          if (-not (Test-Path $changelogPath)) {
+            "No changelog found." | Set-Content -Path changelog-release.md
+            return
+          }
+          $content = Get-Content $changelogPath -Raw
+          $pattern = "(?ms)## \[$ver\].*?(?=\n## \[|\z)"
+          if ($content -match $pattern) {
+            $Matches[0].Trim() | Set-Content -Path changelog-release.md
+            Write-Host "Changelog extracted for v$ver"
+          } else {
+            Write-Warning "No changelog entry found for v$ver"
+            "See docs/meta/CHANGELOG.md for details." | Set-Content -Path changelog-release.md
+          }
+
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Algorithm SHA256 ai-memory-server.exe).Hash.ToLower()
+          Set-Content -Path "ai-memory-server.exe.sha256" -Value "$hash  ai-memory-server.exe"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.version }}
+          body_path: changelog-release.md
+          files: |
+            ai-memory-server.exe
+            ai-memory-server.exe.sha256
+          fail_on_unmatched_files: false
+          generate_release_notes: false
