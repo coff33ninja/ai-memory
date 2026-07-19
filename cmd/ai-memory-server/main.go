@@ -173,10 +173,152 @@ func main() {
 
 	// MCP server
 	srv := mcp.NewServer(Version)
-	srv.SetHandlers(
-		database, searcher, skillsStore, skillsStore, store,
-		emb, pm, eng,
-	)
+	srv.RegisterTools(mcp.DefaultTools...)
+	srv.RegisterResources(mcp.DefaultResources...)
+	srv.RegisterTemplates(mcp.DefaultTemplates...)
+	srv.RegisterPrompts(mcp.DefaultPrompts...)
+	srv.SetToolHandler(func(name string, args map[string]interface{}) (interface{}, error) {
+		switch name {
+		case "store":
+			var sharedMem *memory.Store
+			if sharedDB != nil {
+				sharedMem = memory.New(sharedDB)
+			}
+			return handleStore(store, sharedMem, args)
+		case "review":
+			return handleReview(store)
+		case "apply":
+			return handleApply(store, args)
+		case "dismiss":
+			return handleDismiss(store, args)
+		case "status":
+			return handleStatus(store, skillsStore)
+		case "search":
+			return handleSearch(searcher, emb, args)
+		case "search_memories":
+			return handleSearchMemories(searcher, emb, args)
+		case "search_skills":
+			return handleSearchSkills(searcher, emb, args)
+		case "reindex":
+			return handleReindex(searcher)
+		case "skills_sync":
+			return handleSkillsSync(skillsStore)
+		case "skills_search":
+			return handleSkillsSearch(skillsStore, args)
+		case "skills_index":
+			return handleSkillsIndex(skillsStore)
+		case "store_skill_usage":
+			return handleStoreSkillUsage(store, args)
+		case "list_skill_usage":
+			return handleListSkillUsage(store, args)
+		case "onboard":
+			return handleOnboard(pm, store, args)
+		case "list_personas":
+			return handleListPersonas(pm)
+		case "switch_persona":
+			return handleSwitchPersona(pm)
+		case "switch_persona_by_name":
+			return handleSwitchPersonaByName(pm, args)
+		case "delete_persona":
+			return handleDeletePersona(pm, args)
+		case "log_interaction":
+			return handleLogInteraction(eng, pm, args)
+		case "evolve":
+			return handleEvolve(eng, pm)
+		case "consolidate":
+			return handleConsolidate(eng, pm)
+		case "discover_skills":
+			return handleDiscoverSkills(eng, pm)
+		case "evolution_history":
+			return handleEvolutionHistory(eng, pm, args)
+		case "get_evolved_rules":
+			return handleGetEvolvedRules(eng, pm)
+		case "interaction_stats":
+			return handleInteractionStats(eng, pm)
+		case "log_tool_gap":
+			return handleLogToolGap(eng, pm, args)
+		case "list_tool_gaps":
+			return handleListToolGaps(eng, pm, args)
+		case "resolve_tool_gap":
+			return handleResolveToolGap(eng, pm, args)
+		case "log_tool_knowledge":
+			return handleLogToolKnowledge(eng, pm, args)
+		case "log_tool_recipe":
+			return handleLogToolRecipe(eng, pm, args)
+		case "get_tool_knowledge":
+			return handleGetToolKnowledge(eng, pm, args)
+		case "list_tool_knowledge":
+			return handleListToolKnowledge(eng, pm)
+		case "get_tool_recipes":
+			return handleGetToolRecipes(eng, pm, args)
+		case "record_recipe_outcome":
+			return handleRecordRecipeOutcome(eng, pm, args)
+		case "log_tool_error":
+			return handleLogToolError(eng, pm, args)
+		case "list_tool_errors":
+			return handleListToolErrors(eng, pm, args)
+		case "resolve_tool_error":
+			return handleResolveToolError(eng, pm, args)
+		case "register_mcp_server":
+			return handleRegisterMCPServer(eng, pm, args)
+		case "get_mcp_server":
+			return handleGetMCPServer(eng, pm, args)
+		case "list_mcp_servers":
+			return handleListMCPServers(eng, pm)
+		default:
+			return nil, fmt.Errorf("unknown tool: %s", name)
+		}
+	})
+	srv.SetResourceHandler(func(uri string) (interface{}, error) {
+		switch {
+		case uri == "memory://memories":
+			return handleAll(store, skillsStore, database)
+		case uri == "memory://skills":
+			return handleSummary(store, skillsStore)
+		case uri == "memory://summary":
+			return handleSummary(store, skillsStore)
+		case uri == "memory://all":
+			return handleAll(store, skillsStore, database)
+		case uri == "skills://catalog":
+			return handleSummary(store, skillsStore)
+		case uri == "context://project":
+			return handleContextProject(skillsStore)
+		case uri == "context://startup":
+			return handleContextStartup(store, skillsStore)
+		case uri == "skills://usage":
+			return handleSkillsUsage(store)
+		case uri == "persona://active":
+			return handlePersonaActive(pm)
+		case uri == "persona://all":
+			return handlePersonaAll(pm)
+		case uri == "evolution://stats":
+			return handleEvolutionStats(pm, eng)
+		case uri == "evolution://rules":
+			return handleGetEvolvedRules(eng, pm)
+		default:
+			return nil, fmt.Errorf("unknown resource: %s", uri)
+		}
+	})
+	srv.SetPromptHandler(func(name string, args map[string]interface{}) (interface{}, error) {
+		switch name {
+		case "memory":
+			return handleMemoryPrompt(store, skillsStore)
+		case "reflect":
+			return handleReflectPrompt()
+		case "context-inject":
+			return handleContextInjectPrompt()
+		case "skill-usage-recorder":
+			return handleSkillUsageRecorderPrompt()
+		case "persona-startup":
+			return handlePersonaStartupPrompt(pm, store, skillsStore)
+		case "evolution-loop":
+			return handleEvolutionPrompt(pm)
+		case "mcp-error-handling":
+			return handleMCPErrorPrompt(pm, eng)
+		default:
+			return nil, fmt.Errorf("unknown prompt: %s", name)
+		}
+	})
 
 	// Start serving
 	if err := srv.Serve(); err != nil {

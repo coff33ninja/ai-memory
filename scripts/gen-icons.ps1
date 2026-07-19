@@ -7,14 +7,14 @@ param(
     Generate Windows icon resource (.syso) for embedding into mcp-server.exe.
     Uses rsrc (github.com/akavel/rsrc) to compile app.ico into a COFF object.
 .DESCRIPTION
-    Run before build. The .syso file is placed alongside Go source in cmd/mcp-server/
+    Run before build. The .syso file is placed alongside Go source in cmd/ai-memory-server/
     so the Go linker automatically picks it up.
 #>
 
 $ErrorActionPreference = "Stop"
 $repoRoot    = Resolve-Path (Join-Path $PSScriptRoot "..")
 $icoPath     = Join-Path (Join-Path $repoRoot "icons") "app.ico"
-$sysoOut     = Join-Path (Join-Path (Join-Path $repoRoot "cmd") "mcp-server") "rsrc_windows.syso"
+$sysoOut     = Join-Path (Join-Path (Join-Path $repoRoot "cmd") "ai-memory-server") "rsrc_windows.syso"
 
 if (-not (Test-Path $icoPath)) {
     Write-Error "Icon not found at $icoPath — run icons/gen-icons.py first"

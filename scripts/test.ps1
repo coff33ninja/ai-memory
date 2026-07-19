@@ -1,12 +1,11 @@
 param(
-    [switch]$Integration,
     [switch]$Short,
     [int]$TimeoutSec = 120
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== go-mcp-computer-use test ===" -ForegroundColor Cyan
+Write-Host "=== ai-memory test ===" -ForegroundColor Cyan
 
 # Detect Zig and configure CGO for C interop tests
 $zig = Get-Command "zig" -ErrorAction SilentlyContinue
@@ -17,7 +16,7 @@ if ($zig) {
     $env:CGO_LDFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
     Write-Host "C compiler: Zig cc ($(zig version))" -ForegroundColor Cyan
 } else {
-    Write-Host "Zig not found — using default C compiler" -ForegroundColor Yellow
+    Write-Host "Zig not found - using default C compiler" -ForegroundColor Yellow
     $env:CGO_ENABLED = "1"
 }
 
@@ -45,14 +44,7 @@ if ($Short) {
 }
 $testArgs += "-timeout", "${TimeoutSec}s"
 
-if ($Integration) {
-    $testArgs += "-tags=integration"
-    Write-Host "`n[*] Running ALL tests (including integration)..." -ForegroundColor Cyan
-} else {
-    Write-Host "`n[*] Running unit tests (skip integration)..." -ForegroundColor Cyan
-    $testArgs += "-run", "^(?!TestChain_)"
-}
-
+Write-Host "`n[*] Running tests..." -ForegroundColor Cyan
 Write-Host "  go $($testArgs -join ' ')" -ForegroundColor Gray
 & go @testArgs
 

@@ -25,11 +25,6 @@ jobs:
         run: |
           go get -u ./...
           go mod tidy
-          # Revert onnxruntime_go — pinned version, dependabot blocked.
-          # v1.13.0 is the last known-compatible version with our usage.
-          # Major jumps (v1.31.0) need manual API compatibility review.
-          go get github.com/yalue/onnxruntime_go@v1.13.0
-          go mod tidy
 
       - name: Check for changes
         id: check
@@ -57,13 +52,13 @@ jobs:
           $prPayload = @{
             title = "chore(deps): weekly go module update"
             head = $branch
-            base = "v0.2.x"
+            base = "main"
             body = "Automated weekly Go module dependency update via ``go get -u ./...`` followed by ``go mod tidy``."
           } | ConvertTo-Json
           
           $response = Invoke-WebRequest `
             -Method POST `
-            -Uri "https://api.github.com/repos/coff33ninja/go-mcp-computer-use/pulls" `
+            -Uri "https://api.github.com/repos/coff33ninja/ai-memory/pulls" `
             -Headers @{
               "Authorization" = "token $env:GH_TOKEN"
               "Accept" = "application/vnd.github+json"

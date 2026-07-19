@@ -30,13 +30,13 @@ jobs:
           }
           echo "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Regenerate tools.md
-        shell: pwsh
-        run: go run ./scripts/gen-tools-doc.go
-
       - name: Lint
         shell: pwsh
         run: ./scripts/lint.ps1
+
+      - name: Regenerate tools.md
+        shell: pwsh
+        run: go run ./scripts/gen-tools-doc.go
 
       - name: Install Zig
         shell: pwsh
@@ -47,29 +47,25 @@ jobs:
           Expand-Archive -Path $zip -DestinationPath "$env:ProgramFiles" -Force
           echo "$env:ProgramFiles\zig-x86_64-windows-0.16.0" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-      - name: Generate icon resource
-        shell: pwsh
-        run: ./scripts/gen-icons.ps1
-
       - name: Build release (CGO + Zig)
         run: |
-          # Pin CPU baseline to x86_64_v2 so binary runs on older CPUs (GHA runner
-          # is newer and zig defaults to -march=native, which can generate illegal
-          # instructions on older machines like Pentium Gold G5400).
-          # Both CGO_CFLAGS (C compilation) and CGO_LDFLAGS (linking) need the
-          # flag because setup-go pre-sets CGO_LDFLAGS=-O2 -g without our -mcpu.
           $env:CGO_ENABLED = "1"
           $env:CC = "zig cc"
           $env:CGO_CFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
           $env:CGO_LDFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
-          go build -ldflags="-X main.Version=${{ steps.version.outputs.version }}" -o mcp-server.exe ./cmd/mcp-server/
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ai-memory-server.exe ./cmd/ai-memory-server/
 
       - name: Extract changelog
         id: changelog
         shell: pwsh
         run: |
           $ver = "${{ steps.version.outputs.version }}"
-          $content = Get-Content docs/meta/CHANGELOG.md -Raw
+          $changelogPath = "docs/meta/CHANGELOG.md"
+          if (-not (Test-Path $changelogPath)) {
+            "No changelog found." | Set-Content -Path changelog-release.md
+            return
+          }
+          $content = Get-Content $changelogPath -Raw
           $pattern = "(?ms)## \[$ver\].*?(?=\n## \[|\z)"
           if ($content -match $pattern) {
             $Matches[0].Trim() | Set-Content -Path changelog-release.md
@@ -82,8 +78,8 @@ jobs:
       - name: Checksum
         shell: pwsh
         run: |
-          $hash = (Get-FileHash -Algorithm SHA256 mcp-server.exe).Hash.ToLower()
-          Set-Content -Path "mcp-server.exe.sha256" -Value "$hash  mcp-server.exe"
+          $hash = (Get-FileHash -Algorithm SHA256 ai-memory-server.exe).Hash.ToLower()
+          Set-Content -Path "ai-memory-server.exe.sha256" -Value "$hash  ai-memory-server.exe"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -91,7 +87,7 @@ jobs:
           name: v${{ steps.version.outputs.version }}
           body_path: changelog-release.md
           files: |
-            mcp-server.exe
-            mcp-server.exe.sha256
+            ai-memory-server.exe
+            ai-memory-server.exe.sha256
           fail_on_unmatched_files: false
           generate_release_notes: false

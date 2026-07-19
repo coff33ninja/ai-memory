@@ -1,12 +1,12 @@
 param(
     [switch]$Release,
-    [string]$Output = "mcp-server.exe"
+    [string]$Output = "ai-memory-server.exe"
 )
 
 $ErrorActionPreference = "Stop"
 $ver = (Get-Content (Join-Path $PSScriptRoot "..\VERSION") -Raw).Trim()
 
-Write-Host "=== go-mcp-computer-use build ===" -ForegroundColor Cyan
+Write-Host "=== ai-memory build ===" -ForegroundColor Cyan
 Write-Host "Version: $ver" -ForegroundColor Gray
 
 $go = Get-Command "go" -ErrorAction SilentlyContinue
@@ -37,9 +37,9 @@ if (-not $Release) {
 }
 
 Write-Host "Building..." -ForegroundColor Gray
-go build -ldflags="$ldflags" -o $Output .\cmd\mcp-server\
+go build -ldflags="$ldflags" -o $Output .\cmd\ai-memory-server\
 if (-not $?) { exit 1 }
 
 $sizeBytes = (Get-Item $Output).Length
 $mib = [math]::Round($sizeBytes / 1048576, 1)
-Write-Host "OK: $Output ($mib` MB)" -ForegroundColor Green
+Write-Host "OK: $Output ($mib MB)" -ForegroundColor Green

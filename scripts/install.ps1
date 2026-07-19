@@ -1,14 +1,14 @@
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\go-mcp-computer-use",
+    [string]$InstallDir = "$env:LOCALAPPDATA\ai-memory",
     [switch]$Update,
     [switch]$UseZig
 )
 
 $ErrorActionPreference = "Stop"
 
-$repo = "https://github.com/coff33ninja/go-mcp-computer-use"
+$repo = "https://github.com/coff33ninja/ai-memory"
 
-Write-Host "go-mcp-computer-use installer" -ForegroundColor Cyan
+Write-Host "ai-memory installer" -ForegroundColor Cyan
 Write-Host ""
 
 # Check Go
@@ -17,6 +17,17 @@ if (-not $go) {
     Write-Host "Go is required to build from source." -ForegroundColor Yellow
     Write-Host "Install from: https://go.dev/dl/" -ForegroundColor Yellow
     exit 1
+}
+
+# CGO is required (sqlite3, onnxruntime)
+# Check for CGO_TRIGGER file in repo root to enable CGO builds
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$cgEnabled = Test-Path (Join-Path $repoRoot "CGO_TRIGGER")
+if (-not $cgEnabled) {
+    Write-Host "WARNING: CGO_TRIGGER file not found in repo root." -ForegroundColor Yellow
+    Write-Host "ai-memory requires CGO for sqlite3 and onnxruntime." -ForegroundColor Yellow
+    Write-Host "Create CGO_TRIGGER file to enable CGO builds." -ForegroundColor Yellow
+    Write-Host "Continuing anyway..." -ForegroundColor Yellow
 }
 
 # Check / install Zig
@@ -49,7 +60,7 @@ if (-not (Test-Path -LiteralPath $InstallDir)) {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
 
-$exePath = "$InstallDir\mcp-server.exe"
+$exePath = "$InstallDir\ai-memory-server.exe"
 
 # Check if already installed
 if ((Test-Path -LiteralPath $exePath) -and -not $Update) {
@@ -59,7 +70,7 @@ if ((Test-Path -LiteralPath $exePath) -and -not $Update) {
 }
 
 # Clone or pull
-$srcDir = "$env:TEMP\go-mcp-computer-use"
+$srcDir = "$env:TEMP\ai-memory"
 if (Test-Path -LiteralPath $srcDir) {
     Remove-Item -Recurse -Force $srcDir -ErrorAction SilentlyContinue
 }
@@ -72,17 +83,15 @@ if (-not $?) {
 }
 
 # Build
-Write-Host "Building mcp-server.exe..." -ForegroundColor Gray
+Write-Host "Building ai-memory-server.exe..." -ForegroundColor Gray
 Push-Location $srcDir
 try {
+    $env:CGO_ENABLED = "1"
     if ($UseZig -and $zig) {
         $env:CC = "zig cc"
-        $env:CGO_ENABLED = "1"
         Write-Host "Using Zig cc as C compiler" -ForegroundColor Cyan
-    } else {
-        $env:CGO_ENABLED = "0"
     }
-    go build -o $exePath -ldflags="-s -w" .\cmd\mcp-server\
+    go build -o $exePath -ldflags="-s -w" .\cmd\ai-memory-server\
     if (-not $?) {
         Write-Host "Build failed." -ForegroundColor Red
         exit 1
@@ -95,18 +104,14 @@ try {
 Remove-Item -Recurse -Force $srcDir -ErrorAction SilentlyContinue
 
 # Create default config
-$configDir = "$env:USERPROFILE\.config\go-mcp-computer-use"
+$configDir = "$env:USERPROFILE\.config\ai-memory"
 $configPath = "$configDir\config.json"
 if (-not (Test-Path -LiteralPath $configPath)) {
     if (-not (Test-Path -LiteralPath $configDir)) {
         New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     }
     @{
-        log_level         = "info"
-        mouse_speed       = 500
-        click_delay_ms    = 100
-        verify_bounds     = $true
-        action_timeout_ms = 30000
+        log_level = "info"
     } | ConvertTo-Json | Set-Content -Path $configPath
 }
 
@@ -116,8 +121,3 @@ Write-Host "Config:    $configPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Add to opencode.json:" -ForegroundColor Cyan
 Write-Host "  `"command`": `"$exePath`"" -ForegroundColor Gray
-if ($UseZig) {
-    Write-Host ""
-    Write-Host "Cross-compile for ARM64 Windows:" -ForegroundColor Cyan
-    Write-Host "  CC=`"zig cc`" GOOS=windows GOARCH=arm64 go build -o $InstallDir\mcp-server-arm64.exe .\cmd\mcp-server\" -ForegroundColor Gray
-}

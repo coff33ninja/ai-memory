@@ -9,6 +9,12 @@ if (-not (Test-Path $OpenCodeDesktop)) {
     exit 1
 }
 
+# ---- Step 0b: Check CGO ----
+if (-not (Test-Path "CGO_TRIGGER")) {
+    Write-Error "CGO_TRIGGER file not found. ai-memory requires CGO for sqlite3 and onnxruntime."
+    exit 1
+}
+
 # ---- Step 1: Read version ----
 $version = (Get-Content VERSION -Raw).Trim()
 if (-not $version) {
@@ -20,23 +26,24 @@ Write-Host "=== Bumped version to $tag  ==="
 Write-Host "    Read the changelog: docs/meta/CHANGELOG.md"
 
 # ---- Step 2: Read changelog section for commit body ----
-$changelog = Get-Content docs/meta/CHANGELOG.md -Raw
-$pattern = "(?ms)## \[$version\].*?(?=\n## \[|\z)"
+$changelogPath = "docs/meta/CHANGELOG.md"
 $commitBody = ""
-if ($changelog -match $pattern) {
-    $commitBody = $Matches[0].Trim()
+if (Test-Path $changelogPath) {
+    $changelog = Get-Content $changelogPath -Raw
+    $pattern = "(?ms)## \[$version\].*?(?=\n## \[|\z)"
+    if ($changelog -match $pattern) {
+        $commitBody = $Matches[0].Trim()
+    }
 }
 # Write commit message to temp file to avoid multiline quoting issues
 $commitMsg = "Bumped version to $tag. Read the changelog for details."
 if ($commitBody) {
     $commitMsg += "`n`n$commitBody"
 }
-$msgFile = "$env:TEMP\mcp-commit-msg.txt"
+$msgFile = "$env:TEMP\ai-memory-commit-msg.txt"
 $commitMsg | Set-Content -Path $msgFile -Encoding UTF8
 
 # ---- Step 3: Commit and tag ----
-Write-Host "Regenerating tools.md..."
-go run ./scripts/gen-tools-doc.go
 Write-Host "Committing..."
 git add -A
 git commit -F $msgFile
@@ -83,52 +90,52 @@ if (-not $runId) {
 }
 Write-Host "Release workflow completed successfully."
 
-# ---- Step 6: Pull latest (CI may have pushed doc fixes, tool count patches, etc.) ----
+# ---- Step 6: Pull latest (CI may have pushed doc fixes) ----
 Write-Host "Pulling latest from origin..."
 git pull --ff-only
 if ($LASTEXITCODE) {
     Write-Host "  fast-forward failed, trying rebase..." -ForegroundColor Yellow
     git pull --rebase
-    if ($LASTEXITCODE) { throw "git pull failed — resolve conflicts manually" }
+    if ($LASTEXITCODE) { throw "git pull failed - resolve conflicts manually" }
 }
 
 # ---- Step 7: Download release asset ----
-Write-Host "Downloading mcp-server.exe from release $tag..."
-$dlDir = "$env:TEMP\mcp-release"
+Write-Host "Downloading ai-memory-server.exe from release $tag..."
+$dlDir = "$env:TEMP\ai-memory-release"
 Remove-Item $dlDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $dlDir -Force | Out-Null
 
 $dlAttempt = 0
 do {
-    gh release download $tag --pattern "mcp-server.exe" --dir $dlDir 2>$null
+    gh release download $tag --pattern "ai-memory-server.exe" --dir $dlDir 2>$null
     if ($LASTEXITCODE -and $dlAttempt -lt 6) {
         Write-Host "  release not ready yet, retrying in 10s... (attempt $($dlAttempt+1))"
         Start-Sleep -Seconds 10
         $dlAttempt++
     }
 } while ($LASTEXITCODE -and $dlAttempt -lt 6)
-if ($LASTEXITCODE) { throw "Failed to download mcp-server.exe after 6 attempts" }
+if ($LASTEXITCODE) { throw "Failed to download ai-memory-server.exe after 6 attempts" }
 
 # ---- Step 8-10: Spawn background cleanup + replace + relaunch ----
 # Spawn as detached process so killing OpenCode doesn't kill us mid-flight
 Write-Host "Scheduling cleanup, replacement, and relaunch (background)..."
-$src = "$dlDir\mcp-server.exe"
+$src = "$dlDir\ai-memory-server.exe"
 if (-not (Test-Path $src)) { throw "Downloaded file not found at $src" }
 
 $postScript = @"
 Start-Sleep -Seconds 3
-Get-Process -Name 'mcp-server' -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id `$_.Id -Force }
+Get-Process -Name 'ai-memory-server' -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id `$_.Id -Force }
 Get-Process -Name 'OpenCode' -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id `$_.Id -Force }
 Start-Sleep -Seconds 3
-Copy-Item '$src' '$PWD\mcp-server.exe' -Force
+Copy-Item '$src' '$PWD\ai-memory-server.exe' -Force
 Remove-Item '$dlDir' -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item '$msgFile' -Force -ErrorAction SilentlyContinue
 Start-Process -FilePath '$OpenCodeDesktop' -Verb RunAs
 "@
-$postScriptPath = "$env:TEMP\mcp-post-cleanup-$(Get-Random).ps1"
+$postScriptPath = "$env:TEMP\ai-memory-post-cleanup-$(Get-Random).ps1"
 $postScript | Set-Content -Path $postScriptPath -Encoding UTF8
 Start-Process -FilePath "powershell" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$postScriptPath`"" -WindowStyle Hidden
 
 Write-Host "=== Done ==="
 Write-Host "OpenCode Desktop will restart as admin in a few seconds."
-Write-Host "MCP server v$version is updated and queued for replacement."
+Write-Host "ai-memory-server v$version is updated and queued for replacement."
