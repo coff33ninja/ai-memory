@@ -29,7 +29,7 @@ func main() {
 
 	// Auto-create default persona on first run
 	if pm != nil && len(pm.List()) == 0 {
-		p, err := pm.Create("default", "General-purpose assistant", "direct", "Auto-created on first run. Onboard with your identity, tone, and skills.", nil)
+		p, err := pm.Create("default", "General-purpose assistant", "direct", "Auto-created on first run. Onboard with your identity, tone, and skills.", "", nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warn: auto-create default persona: %v\n", err)
 		} else {

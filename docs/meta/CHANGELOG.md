@@ -5,6 +5,17 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-07-19
+
+### Added
+- Persona greeting system: each persona can have a greeting keyword that triggers auto-switching
+- `greeting` field on Persona struct (stored in personas.json)
+- `FindPersonaByGreeting` method for case-insensitive greeting matching
+- `onboard` tool now accepts `greeting` parameter
+- `persona://active` and `switch_persona` display greeting keyword
+- `persona-startup` prompt lists all personas with their greetings for AI-driven switching
+- When user says "hello Akeno", AI detects greeting and calls `switch_persona`
+
 ## [0.1.1] - 2026-07-19
 
 ### Added

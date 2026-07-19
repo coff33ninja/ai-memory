@@ -17,6 +17,7 @@ func handleOnboard(pm *persona.Manager, mem *memory.Store, args map[string]inter
 	}
 	tone, _ := args["tone"].(string)
 	description, _ := args["description"].(string)
+	greeting, _ := args["greeting"].(string)
 	var skillNames []string
 	if s, ok := args["skills"].([]interface{}); ok {
 		for _, v := range s {
@@ -26,7 +27,7 @@ func handleOnboard(pm *persona.Manager, mem *memory.Store, args map[string]inter
 		}
 	}
 
-	_, err := pm.Create(name, identity, tone, description, skillNames)
+	_, err := pm.Create(name, identity, tone, description, greeting, skillNames)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +73,10 @@ func handleOnboard(pm *persona.Manager, mem *memory.Store, args map[string]inter
 	}
 	if description != "" {
 		sb.WriteString(fmt.Sprintf("Description: %s\n", description))
+	}
+	if greeting != "" {
+		sb.WriteString(fmt.Sprintf("Greeting keyword: %s\n", greeting))
+		sb.WriteString(fmt.Sprintf("  → When user says \"%s\", switch to this persona\n", greeting))
 	}
 	if len(skillNames) > 0 {
 		sb.WriteString(fmt.Sprintf("Skills: %s\n", strings.Join(skillNames, ", ")))
@@ -129,6 +134,9 @@ func handleSwitchPersonaByName(pm *persona.Manager, args map[string]interface{})
 	if p.Description != "" {
 		sb.WriteString(fmt.Sprintf("Description: %s\n", p.Description))
 	}
+	if p.Greeting != "" {
+		sb.WriteString(fmt.Sprintf("Greeting keyword: %s\n", p.Greeting))
+	}
 	if len(p.Skills) > 0 {
 		sb.WriteString(fmt.Sprintf("Skills: %s\n", strings.Join(p.Skills, ", ")))
 	}
@@ -160,6 +168,9 @@ func handlePersonaActive(pm *persona.Manager) (interface{}, error) {
 	}
 	if p.Description != "" {
 		sb.WriteString(fmt.Sprintf("Description: %s\n", p.Description))
+	}
+	if p.Greeting != "" {
+		sb.WriteString(fmt.Sprintf("Greeting keyword: %s\n", p.Greeting))
 	}
 	if len(p.Skills) > 0 {
 		sb.WriteString(fmt.Sprintf("Skills: %s\n", strings.Join(p.Skills, ", ")))
@@ -222,7 +233,29 @@ func handlePersonaStartupPrompt(pm *persona.Manager, mem *memory.Store, skillsSt
 	if p.Description != "" {
 		sb.WriteString(fmt.Sprintf("Description: %s\n", p.Description))
 	}
+	if p.Greeting != "" {
+		sb.WriteString(fmt.Sprintf("Your greeting keyword: %s\n", p.Greeting))
+	}
 	sb.WriteString("\n")
+
+	// List all personas with their greetings for switching
+	allPersonas := pm.List()
+	if len(allPersonas) > 1 {
+		sb.WriteString("## Available Personas (for greeting-based switching)\n")
+		for _, ap := range allPersonas {
+			greetInfo := ""
+			if ap.Greeting != "" {
+				greetInfo = fmt.Sprintf(" — greeting: \"%s\"", ap.Greeting)
+			}
+			marker := "  "
+			if ap.Name == name {
+				marker = "* "
+			}
+			sb.WriteString(fmt.Sprintf("%s%s: %s%s\n", marker, ap.Name, ap.Identity, greetInfo))
+		}
+		sb.WriteString("\nWhen the user's message contains a greeting keyword (e.g. \"hello Akeno\"), call `switch_persona` to that persona.\n")
+		sb.WriteString("* = current persona\n\n")
+	}
 
 	if len(pending) > 0 {
 		sb.WriteString(fmt.Sprintf("## %d Pending Memories\n", len(pending)))

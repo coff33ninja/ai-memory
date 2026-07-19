@@ -169,6 +169,7 @@ var DefaultTools = []ToolDef{
 				"identity":    map[string]interface{}{"type": "string", "description": "Who this AI is — name, role, purpose"},
 				"tone":        map[string]interface{}{"type": "string", "description": "Communication style (e.g. formal, casual, concise, verbose)"},
 				"description": map[string]interface{}{"type": "string", "description": "Brief description of this persona's specialty"},
+				"greeting":    map[string]interface{}{"type": "string", "description": "Greeting keyword that triggers switching to this persona (e.g. 'Akeno', 'Hello Akeno')"},
 				"skills":      map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Skill names this persona should use"},
 			},
 			"required": []string{"name", "identity"},

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,6 +15,7 @@ type Persona struct {
 	Identity    string            `json:"identity,omitempty"`
 	Tone        string            `json:"tone,omitempty"`
 	Description string            `json:"description,omitempty"`
+	Greeting    string            `json:"greeting,omitempty"`
 	Skills      []string          `json:"skills,omitempty"`
 	Meta        map[string]string `json:"meta,omitempty"`
 	CreatedAt   string            `json:"created_at"`
@@ -92,7 +94,7 @@ func (m *Manager) SharedDir() string {
 	return filepath.Join(m.dir, "shared")
 }
 
-func (m *Manager) Create(name, identity, tone, description string, skills []string) (*Persona, error) {
+func (m *Manager) Create(name, identity, tone, description, greeting string, skills []string) (*Persona, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -108,6 +110,7 @@ func (m *Manager) Create(name, identity, tone, description string, skills []stri
 		Identity:    identity,
 		Tone:        tone,
 		Description: description,
+		Greeting:    greeting,
 		Skills:      skills,
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -150,7 +153,7 @@ func (m *Manager) Switch(name string) (*Persona, error) {
 	return nil, fmt.Errorf("persona %q not found", name)
 }
 
-func (m *Manager) Update(name, identity, tone, description string, skills []string) (*Persona, error) {
+func (m *Manager) Update(name, identity, tone, description, greeting string, skills []string) (*Persona, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -164,6 +167,9 @@ func (m *Manager) Update(name, identity, tone, description string, skills []stri
 			}
 			if description != "" {
 				m.registry.Personas[i].Description = description
+			}
+			if greeting != "" {
+				m.registry.Personas[i].Greeting = greeting
 			}
 			if skills != nil {
 				m.registry.Personas[i].Skills = skills
@@ -212,4 +218,20 @@ func (m *Manager) Delete(name string) error {
 	os.Rename(pDir, backupDir)
 
 	return m.save()
+}
+
+// FindPersonaByGreeting searches all personas for one whose greeting matches the input text.
+// Returns the persona name if found, empty string otherwise.
+func (m *Manager) FindPersonaByGreeting(text string) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, p := range m.registry.Personas {
+		if p.Greeting == "" {
+			continue
+		}
+		if strings.Contains(strings.ToLower(text), strings.ToLower(p.Greeting)) {
+			return p.Name
+		}
+	}
+	return ""
 }

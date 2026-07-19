@@ -42,7 +42,7 @@ func (a *Adapter) AdaptTraits(personaName string) (*TraitAdaptationResult, error
 			result.ToneChanged = true
 			result.Reason = fmt.Sprintf("Tone '%s' scored %.1f vs current '%s'", bestTone, bestScore, p.Tone)
 
-			a.manager.Update(personaName, "", bestTone, "", nil)
+			a.manager.Update(personaName, "", bestTone, "", "", nil)
 
 			a.tracker.LogEvolution(NewEvolutionEntry(
 				personaName,
@@ -73,7 +73,7 @@ func (a *Adapter) AdaptTraits(personaName string) (*TraitAdaptationResult, error
 
 		if len(skillsAdded) > 0 {
 			newSkills := append(p.Skills, skillsAdded...)
-			a.manager.Update(personaName, "", "", "", newSkills)
+			a.manager.Update(personaName, "", "", "", "", newSkills)
 			result.SkillsAdded = skillsAdded
 			result.DescriptionChanged = true
 			result.DescriptionBefore = fmt.Sprintf("Skills: %v", p.Skills)

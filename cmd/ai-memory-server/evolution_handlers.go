@@ -93,7 +93,7 @@ func handleDiscoverSkills(eng *evolution.Engine, pm *persona.Manager) (interface
 
 	p := pm.Get(personaName)
 	newSkills := append(p.Skills, skills...)
-	pm.Update(personaName, "", "", "", newSkills)
+	pm.Update(personaName, "", "", "", "", newSkills)
 
 	return fmt.Sprintf("Discovered %d new skills for %q:\n%s\n\nSkills updated: %v", len(skills), personaName, strings.Join(skills, "\n"), newSkills), nil
 }
