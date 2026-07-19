@@ -5,6 +5,12 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-07-20
+
+### Added
+- Expanded design philosophy section in README: core principles, architectural patterns (cascading lookup, SQLite universal store, embedding-on-write, auto-consolidation, graceful degradation, panic recovery, file-based logging, CI/CD enforcement), and development workflow documentation
+- Cross-reference to companion project go-mcp-computer-use
+
 ## [0.1.3] - 2026-07-19
 
 ### Fixed

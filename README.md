@@ -450,3 +450,44 @@ ai-memory requires CGO for sqlite3 and onnxruntime. The `CGO_TRIGGER` file in th
 - [ADR-002](docs/adr/ADR-002-go-rewrite.md) — decision record for Go rewrite
 - [Changelog](docs/meta/CHANGELOG.md) — version history
 - [Tools](docs/reference/tools.md) — auto-generated tool catalog
+
+---
+
+## Design Philosophy
+
+Built iteratively across AI-assisted development sessions. The companion project [`go-mcp-computer-use`](https://github.com/coff33ninja/go-mcp-computer-use) provides desktop automation (mouse, keyboard, OCR, window management) — ai-memory gives that agent persistent recall, skill growth, and self-evolution.
+
+The project is guided by a curated set of quality-enforcement skills from [coff33ninja/ai-skills](https://github.com/coff33ninja/ai-skills) — anti-hallucination, anti-slop, safe-code-modifications, anti-sycophancy, code-simplification, context-engineering, don't-kill-tokens, os-awareness, anti-tool-sprawl, follow-existing-patterns, no-dead-code-removal, universal-format-lint, self-validate, verify-and-cite, and others.
+
+### Core Principles
+
+- **Single binary, zero config** — CGO+Zig for self-contained builds, auto-download ONNX models at first run
+- **Semantic memory** — embeddings for recall, not just keyword matching. Memories are embedded on store so they're immediately searchable.
+- **Evolution over configuration** — the system improves its own behavioral rules from experience, not from hand-tuned configs
+- **Scope-aware isolation** — persona DBs prevent cross-contamination, shared scope enables collaboration
+- **Composable with desktop automation** — designed to pair with go-mcp-computer-use for agents that can both act and remember
+- **Security by design** — the server holds API keys and behavioral rules. Never log secrets, never commit keys, scope-sensitive data to `user:` profiles. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full trust boundary model.
+- **Accessibility first** — multi-persona support enables different interaction styles for different users and use cases, from formal to casual to specialized domains
+
+### Architectural Patterns
+
+- **Cascading lookup** — memories, tool knowledge, skills, and user profiles all follow the same pattern: check local scope first, fall back to shared/global, then search embeddings. This is the same pattern go-mcp-computer-use uses for UI element detection (memory → ONNX → OCR).
+- **SQLite as universal store** — both projects use SQLite for persistence. ai-memory uses it for memories, embeddings, personas, tool knowledge, recipes, and user profiles. go-mcp-computer-use uses it for training data, UI element caches, and data logging. FTS5 full-text search is available across all text columns.
+- **Embedding-on-write** — embeddings are generated at store time, not on search. This ensures every memory is immediately findable without requiring manual reindex operations.
+- **Auto-consolidation** — memories are automatically deduplicated, elevated, and pruned during evolution cycles. Old low-impact entries are removed to keep the database clean.
+- **Graceful degradation** — ONNX models are auto-downloaded at first use, but the system works without them (keyword search fallback). Skills are cloned from a remote repo but cached locally. If the network is unavailable, the last-known state is used.
+- **Panic recovery** — tool panics log stack traces and return errors instead of crashing the server. The MCP server stays alive even if individual tool calls fail.
+- **File-based logging** — rotating JSON logs at `%APPDATA%/ai-memory/logs/`, configurable retention. Error logs are available for AI diagnostics via tool calls.
+- **CI/CD enforcement** — lint, build, tools.md generation check, and release pipeline all run on every push. Drift between source and generated docs is caught automatically.
+
+### Development Workflow
+
+The project follows an atomic commit + conventional commits workflow:
+1. Make changes
+2. Run `scripts/lint.ps1` to verify
+3. Stage and commit with conventional message (`feat:`, `fix:`, `docs:`, etc.)
+4. Bump VERSION file
+5. Update CHANGELOG.md
+6. Run `scripts/push-and-release.ps1` to handle commit, tag, push, and release creation
+
+Never push directly — always use the push-and-release script. This ensures proper tagging, release workflow, and binary distribution.
