@@ -245,3 +245,62 @@ func (s *Store) DeleteUserProfile(field string) error {
 	_, err := s.db.Conn().Exec("DELETE FROM user_profiles WHERE field = ?", field)
 	return err
 }
+
+func (s *Store) SetProjectContext(name, root, typ, lang string) (*db.ProjectContext, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	// Deactivate all others
+	s.db.Conn().Exec("UPDATE project_contexts SET is_active = 0")
+	_, err := s.db.Conn().Exec(
+		`INSERT INTO project_contexts (name, root, type, lang, is_active, last_used, created_at)
+		 VALUES (?, ?, ?, ?, 1, ?, ?)
+		 ON CONFLICT(name) DO UPDATE SET
+		   root = excluded.root,
+		   type = excluded.type,
+		   lang = excluded.lang,
+		   is_active = 1,
+		   last_used = excluded.last_used`,
+		name, root, typ, lang, now, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("set project context: %w", err)
+	}
+	return &db.ProjectContext{Name: name, Root: root, Type: typ, Lang: lang, IsActive: true, LastUsed: now, CreatedAt: now}, nil
+}
+
+func (s *Store) GetActiveProjectContext() (*db.ProjectContext, error) {
+	p := &db.ProjectContext{}
+	err := s.db.Conn().QueryRow(
+		"SELECT id, name, root, type, lang, is_active, last_used, created_at FROM project_contexts WHERE is_active = 1",
+	).Scan(&p.ID, &p.Name, &p.Root, &p.Type, &p.Lang, &p.IsActive, &p.LastUsed, &p.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get active project: %w", err)
+	}
+	return p, nil
+}
+
+func (s *Store) ListProjectContexts() ([]db.ProjectContext, error) {
+	rows, err := s.db.Conn().Query(
+		"SELECT id, name, root, type, lang, is_active, last_used, created_at FROM project_contexts ORDER BY last_used DESC",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list project contexts: %w", err)
+	}
+	defer rows.Close()
+	var ctxs []db.ProjectContext
+	for rows.Next() {
+		var p db.ProjectContext
+		if err := rows.Scan(&p.ID, &p.Name, &p.Root, &p.Type, &p.Lang, &p.IsActive, &p.LastUsed, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		ctxs = append(ctxs, p)
+	}
+	return ctxs, rows.Err()
+}
+
+func (s *Store) DeleteProjectContext(name string) error {
+	_, err := s.db.Conn().Exec("DELETE FROM project_contexts WHERE name = ?", name)
+	return err
+}

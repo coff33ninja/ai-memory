@@ -80,3 +80,14 @@ type UserProfile struct {
 	CreatedAt  string  `json:"created_at"`
 	UpdatedAt  string  `json:"updated_at"`
 }
+
+type ProjectContext struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Root      string `json:"root"`
+	Type      string `json:"type"`
+	Lang      string `json:"lang"`
+	IsActive  bool   `json:"is_active"`
+	LastUsed  string `json:"last_used"`
+	CreatedAt string `json:"created_at"`
+}

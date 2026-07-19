@@ -206,6 +206,9 @@ func handlePersonaStartupPrompt(pm *persona.Manager, mem *memory.Store, skillsSt
 		skillMap[sk.Name] = sk.Description
 	}
 
+	// Get active project context from DB
+	activeProject, _ := mem.GetActiveProjectContext()
+
 	var sb strings.Builder
 
 	if isDefault {
@@ -223,6 +226,17 @@ func handlePersonaStartupPrompt(pm *persona.Manager, mem *memory.Store, skillsSt
 		sb.WriteString("Then call `skills_index` to index them for search.\n\n")
 		sb.WriteString("After onboarding, your memories, skills, and evolution will persist across sessions.\n\n")
 		sb.WriteString("---\n\n")
+	}
+
+	// Project context section
+	if activeProject != nil {
+		sb.WriteString(fmt.Sprintf("## Active Project: %s\n", activeProject.Name))
+		sb.WriteString(fmt.Sprintf("Root: %s\n", activeProject.Root))
+		sb.WriteString(fmt.Sprintf("Type: %s (%s)\n\n", activeProject.Type, activeProject.Lang))
+	} else {
+		sb.WriteString("## Project Context\n")
+		sb.WriteString("No project context set. Call `set_project_context` with your working directory:\n")
+		sb.WriteString("  set_project_context(name: \"<project-name>\", root: \"<absolute-path>\", type: \"go|node|python|...\", lang: \"go|javascript|python|...\")\n\n")
 	}
 
 	sb.WriteString(fmt.Sprintf("# Persona: %s\n\n", p.Name))

@@ -173,10 +173,20 @@ func handleContextProject(skillsStore *skills.Store) (interface{}, error) {
 }
 
 func handleContextStartup(pm *persona.Manager, mem *memory.Store, skillsStore *skills.Store) (interface{}, error) {
-	p := detectProject()
 	all, _ := skillsStore.Catalog()
 	pending, _ := mem.ListPending()
 	ms, _ := mem.Status()
+
+	// Try to get active project from DB first, fall back to auto-detection
+	activeProject, _ := mem.GetActiveProjectContext()
+	p := detectProject() // fallback
+	projectSource := "auto-detected"
+	if activeProject != nil {
+		p.Type = activeProject.Type
+		p.Lang = activeProject.Lang
+		p.Root = activeProject.Root
+		projectSource = fmt.Sprintf("set by AI (project: %s)", activeProject.Name)
+	}
 
 	// Check if we're using the auto-created default persona
 	isDefault := false
@@ -229,9 +239,13 @@ func handleContextStartup(pm *persona.Manager, mem *memory.Store, skillsStore *s
 		sb.WriteString("---\n\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("Project: %s (%s) @ %s\n", p.Type, p.Lang, p.Root))
+	sb.WriteString(fmt.Sprintf("Project: %s (%s) @ %s [%s]\n", p.Type, p.Lang, p.Root, projectSource))
 	sb.WriteString(fmt.Sprintf("Memory: %d entries, %d pending review\n", ms.MemoryCount, ms.PendingCount))
 	sb.WriteString(fmt.Sprintf("Skills: %d indexed, %d relevant to this project\n\n", len(all), len(relevant)))
+
+	sb.WriteString("IMPORTANT: If the project above is wrong, call `set_project_context` with the correct project.\n")
+	sb.WriteString("Example: set_project_context(name: \"my-app\", root: \"E:\\\\code\\\\my-app\", type: \"go\", lang: \"go\")\n\n")
+	sb.WriteString("If the active project root is different from your current working directory, navigate to it first.\n\n")
 
 	// User profile
 	profiles, _ := mem.ListUserProfile()

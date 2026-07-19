@@ -178,6 +178,21 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_profiles_field ON user_profiles(field);
+
+CREATE TABLE IF NOT EXISTS project_contexts (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	name        TEXT    NOT NULL,
+	root        TEXT    NOT NULL,
+	type        TEXT    NOT NULL DEFAULT 'unknown',
+	lang        TEXT    NOT NULL DEFAULT 'unknown',
+	is_active   INTEGER NOT NULL DEFAULT 0,
+	last_used   TEXT    NOT NULL,
+	created_at  TEXT    NOT NULL,
+	UNIQUE(name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_contexts_name ON project_contexts(name);
+CREATE INDEX IF NOT EXISTS idx_project_contexts_active ON project_contexts(is_active);
 `
 
 type DB struct {

@@ -488,6 +488,30 @@ var DefaultTools = []ToolDef{
 			"required": []string{"field"},
 		},
 	},
+	{
+		Name:        "set_project_context",
+		Description: "Set the active project context — tells the AI which project it's working in. Call this at session start with the working directory.",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{"type": "string", "description": "Project name (e.g. 'ai-memory', 'go-mcp-computer-use')"},
+				"root": map[string]interface{}{"type": "string", "description": "Absolute path to project root"},
+				"type": map[string]interface{}{"type": "string", "description": "Project type (e.g. 'go', 'node', 'python', 'rust')"},
+				"lang": map[string]interface{}{"type": "string", "description": "Primary language (e.g. 'go', 'javascript', 'python')"},
+			},
+			"required": []string{"name", "root"},
+		},
+	},
+	{
+		Name:        "get_project_context",
+		Description: "Get the currently active project context",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+	},
+	{
+		Name:        "list_project_contexts",
+		Description: "List all stored project contexts",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+	},
 }
 
 var DefaultResources = []ResourceDef{
@@ -504,6 +528,7 @@ var DefaultResources = []ResourceDef{
 	{URI: "evolution://stats", Name: "Evolution Stats", Description: "Interaction performance and evolution stats for active persona", MimeType: "application/json"},
 	{URI: "evolution://rules", Name: "Evolved Rules", Description: "Behavioral rules learned from experience", MimeType: "text/plain"},
 	{URI: "user://profile", Name: "User Profile", Description: "What the AI knows about this user — name, interests, preferences", MimeType: "text/plain"},
+	{URI: "project://active", Name: "Active Project", Description: "Currently active project context — name, root, type, language", MimeType: "text/plain"},
 }
 
 var DefaultTemplates = []TemplateDef{

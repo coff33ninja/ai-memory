@@ -309,6 +309,12 @@ func main() {
 			return handleListUserProfile(store, args)
 		case "delete_user_profile":
 			return handleDeleteUserProfile(store, args)
+		case "set_project_context":
+			return handleSetProjectContext(store, args)
+		case "get_project_context":
+			return handleGetActiveProjectContext(store)
+		case "list_project_contexts":
+			return handleListProjectContexts(store)
 		default:
 			return nil, fmt.Errorf("unknown tool: %s", name)
 		}
@@ -341,6 +347,8 @@ func main() {
 			return handleGetEvolvedRules(eng, pm)
 		case uri == "user://profile":
 			return handleUserProfileResource(store)
+		case uri == "project://active":
+			return handleGetActiveProjectContext(store)
 		default:
 			return nil, fmt.Errorf("unknown resource: %s", uri)
 		}

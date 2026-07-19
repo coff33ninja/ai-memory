@@ -5,6 +5,18 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-07-20
+
+### Added
+- Project context system: persistent project tracking across sessions via `project_contexts` table
+- `set_project_context` tool — AI calls this at session start with its working directory to tell the memory system which project it's in
+- `get_project_context` tool — read the active project
+- `list_project_contexts` tool — list all stored projects
+- `project://active` resource — always shows the current project
+- Startup context now reads active project from DB (not just os.Getwd), with source indicator
+- Persona-startup prompt shows project context section with navigation instructions
+- AI instructed to navigate to project root if it differs from current working directory
+
 ## [0.1.4] - 2026-07-20
 
 ### Added
