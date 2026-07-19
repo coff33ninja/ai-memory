@@ -1,4 +1,5 @@
 *.exe
+*.exe~
 *.dll
 test_*.txt
 .ai-memory/
