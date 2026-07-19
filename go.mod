@@ -3,7 +3,7 @@ module github.com/coff33ninja/ai-memory
 go 1.25.1
 
 require (
-	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/mattn/go-sqlite3 v1.14.48
 	github.com/sugarme/tokenizer v0.3.1-0.20251127070628-8dac234bfe56
 	github.com/yalue/onnxruntime_go v1.25.0
 	gopkg.in/yaml.v3 v3.0.1
