@@ -329,7 +329,7 @@ register_mcp_server(
 
 ## MCP Interface
 
-### Tools (44)
+### Tools (57)
 
 | Category | Tool | Purpose |
 |----------|------|---------|
