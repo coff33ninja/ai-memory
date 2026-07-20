@@ -111,11 +111,6 @@ func handleListPersonas(pm *persona.Manager) (interface{}, error) {
 	return sb.String(), nil
 }
 
-func handleSwitchPersona(pm *persona.Manager) (interface{}, error) {
-	name := pm.Active()
-	return fmt.Sprintf("Active persona: %s", name), nil
-}
-
 func handleSwitchPersonaByName(pm *persona.Manager, args map[string]interface{}) (interface{}, error) {
 	name, _ := args["name"].(string)
 	if name == "" {

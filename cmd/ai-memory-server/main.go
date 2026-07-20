@@ -252,8 +252,6 @@ func main() {
 		case "list_personas":
 			return handleListPersonas(pm)
 		case "switch_persona":
-			return handleSwitchPersona(pm)
-		case "switch_persona_by_name":
 			return handleSwitchPersonaByName(pm, args)
 		case "delete_persona":
 			return handleDeletePersona(pm, args)
