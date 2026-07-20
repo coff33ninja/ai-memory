@@ -21,12 +21,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Backup pruning: keeps last 3 backups, deletes older from disk or GitHub repo
 - Restore validates checksum before extracting
 - Auto-backup goroutine runs in background when enabled
+- CI test job — `go test` now runs in CI (was only local)
+- CI security job — `govulncheck ./...` scans for known vulnerabilities on every push
+- Zig download caching in CI/CD workflows (saves ~45s per run)
 
 ### Changed
 - `backup_config` accepts `provider`, `local_path`, `auto_backup`, `interval_hours` only
+- CI pipeline restructured: lint → test + security (parallel) → build
+- Release workflow uses `gh release create` with retry (replaced `softprops/action-gh-release`)
+- Module Maintenance workflow uses `gh pr create` (replaced raw REST API that failed with 403)
 
 ### Fixed
 - `pm.Switch()` return value not handled in project handlers
+- Module Maintenance workflow failing — `GH_TOKEN` lacked PR creation permission, switched to `gh` CLI
+- Release workflow failing on transient GitHub API errors — added 5-attempt retry with backoff
+- Dependabot ignore reason documented for `onnxruntime_go` (CGO/Zig CC compatibility)
 
 ## [0.1.5] - 2026-07-20
 

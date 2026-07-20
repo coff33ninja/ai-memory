@@ -38,14 +38,25 @@ jobs:
         shell: pwsh
         run: go run ./scripts/gen-tools-doc.go
 
+      - name: Cache Zig
+        id: cache-zig
+        uses: actions/cache@v4
+        with:
+          path: C:\Program Files\zig-x86_64-windows-0.16.0
+          key: zig-0.16.0-windows
+
       - name: Install Zig
+        if: steps.cache-zig.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $url = "https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip"
           $zip = "$env:TEMP\zig.zip"
           Invoke-WebRequest -Uri $url -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath "$env:ProgramFiles" -Force
-          echo "$env:ProgramFiles\zig-x86_64-windows-0.16.0" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Add Zig to PATH
+        shell: pwsh
+        run: echo "$env:ProgramFiles\zig-x86_64-windows-0.16.0" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Build release (CGO + Zig)
         run: |
@@ -81,13 +92,30 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 ai-memory-server.exe).Hash.ToLower()
           Set-Content -Path "ai-memory-server.exe.sha256" -Value "$hash  ai-memory-server.exe"
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: v${{ steps.version.outputs.version }}
-          body_path: changelog-release.md
-          files: |
-            ai-memory-server.exe
-            ai-memory-server.exe.sha256
-          fail_on_unmatched_files: false
-          generate_release_notes: false
+      - name: Create release (with retry)
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $maxRetries = 5
+          for ($i = 1; $i -le $maxRetries; $i++) {
+            Write-Host "Attempt $i of $maxRetries..."
+            gh release create $tag `
+              --title "v${{ steps.version.outputs.version }}" `
+              --notes-file changelog-release.md `
+              ai-memory-server.exe `
+              ai-memory-server.exe.sha256
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Release created successfully."
+              break
+            }
+            if ($i -lt $maxRetries) {
+              $wait = $i * 15
+              Write-Host "Release creation failed, retrying in ${wait}s..."
+              Start-Sleep -Seconds $wait
+            } else {
+              Write-Error "Failed to create release after $maxRetries attempts."
+              exit 1
+            }
+          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

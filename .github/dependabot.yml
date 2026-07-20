@@ -10,5 +10,7 @@ updates:
     schedule:
       interval: "weekly"
     ignore:
+      # onnxruntime_go is pinned to v1.25.0 — newer versions may break CGO
+      # compatibility with Zig CC. Manual upgrade required after testing.
       - dependency-name: "github.com/yalue/onnxruntime_go"
-      
+
