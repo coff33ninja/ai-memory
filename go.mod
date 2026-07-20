@@ -6,6 +6,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/sugarme/tokenizer v0.3.1-0.20251127070628-8dac234bfe56
 	github.com/yalue/onnxruntime_go v1.25.0
+	golang.org/x/sys v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -17,6 +18,5 @@ require (
 	github.com/schollz/progressbar/v2 v2.15.0 // indirect
 	github.com/sugarme/regexpset v0.0.0-20200920021344-4d4ec8eaf93c // indirect
 	golang.org/x/sync v0.14.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 )
