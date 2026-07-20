@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/coff33ninja/ai-memory/internal/memory"
+	"github.com/coff33ninja/ai-memory/internal/persona"
 )
 
-func handleSetProjectContext(store *memory.Store, args map[string]interface{}) (interface{}, error) {
+func handleSetProjectContext(store *memory.Store, pm *persona.Manager, args map[string]interface{}) (interface{}, error) {
 	name, _ := args["name"].(string)
 	root, _ := args["root"].(string)
 	if name == "" || root == "" {
@@ -26,7 +27,24 @@ func handleSetProjectContext(store *memory.Store, args map[string]interface{}) (
 	if err != nil {
 		return nil, err
 	}
-	return fmt.Sprintf("Active project set to %q (%s/%s) @ %s", p.Name, p.Type, p.Lang, p.Root), nil
+
+	// Auto-switch persona if mapped
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Active project set to %q (%s/%s) @ %s", p.Name, p.Type, p.Lang, p.Root))
+
+	if pm != nil {
+		mapping, _ := store.GetPersonaMapping(name)
+		if mapping != nil {
+			personaObj := pm.Get(mapping.Persona)
+			if personaObj != nil {
+				if _, err := pm.Switch(mapping.Persona); err == nil {
+					sb.WriteString(fmt.Sprintf("\nAuto-switched to persona: %s", mapping.Persona))
+				}
+			}
+		}
+	}
+
+	return sb.String(), nil
 }
 
 func handleGetActiveProjectContext(store *memory.Store) (interface{}, error) {
@@ -64,5 +82,45 @@ func handleListProjectContexts(store *memory.Store) (interface{}, error) {
 		sb.WriteString(fmt.Sprintf("   Last used: %s\n", p.LastUsed))
 	}
 	sb.WriteString("\n* = active project")
+	return sb.String(), nil
+}
+
+func handleMapPersona(store *memory.Store, args map[string]interface{}) (interface{}, error) {
+	project, _ := args["project"].(string)
+	personaName, _ := args["persona"].(string)
+	if project == "" || personaName == "" {
+		return nil, fmt.Errorf("project and persona are required")
+	}
+	_, err := store.SetPersonaMapping(project, personaName)
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("Persona %q mapped to project %q", personaName, project), nil
+}
+
+func handleUnmapPersona(store *memory.Store, args map[string]interface{}) (interface{}, error) {
+	project, _ := args["project"].(string)
+	if project == "" {
+		return nil, fmt.Errorf("project is required")
+	}
+	if err := store.DeletePersonaMapping(project); err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("Persona mapping removed for project %q", project), nil
+}
+
+func handleListPersonaMappings(store *memory.Store) (interface{}, error) {
+	mappings, err := store.ListPersonaMappings()
+	if err != nil {
+		return nil, err
+	}
+	if len(mappings) == 0 {
+		return "No persona mappings configured. Use `map_persona` to map projects to personas.", nil
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%d persona mapping(s):\n\n", len(mappings)))
+	for _, m := range mappings {
+		sb.WriteString(fmt.Sprintf("  %s → %s\n", m.Project, m.Persona))
+	}
 	return sb.String(), nil
 }

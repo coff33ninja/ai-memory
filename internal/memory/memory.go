@@ -304,3 +304,149 @@ func (s *Store) DeleteProjectContext(name string) error {
 	_, err := s.db.Conn().Exec("DELETE FROM project_contexts WHERE name = ?", name)
 	return err
 }
+
+func (s *Store) SetPersonaMapping(project, persona string) (*db.PersonaMapping, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Conn().Exec(
+		`INSERT INTO persona_mappings (project, persona, created_at)
+		 VALUES (?, ?, ?)
+		 ON CONFLICT(project) DO UPDATE SET
+		   persona = excluded.persona, created_at = excluded.created_at`,
+		project, persona, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("set persona mapping: %w", err)
+	}
+	return &db.PersonaMapping{Project: project, Persona: persona, CreatedAt: now}, nil
+}
+
+func (s *Store) GetPersonaMapping(project string) (*db.PersonaMapping, error) {
+	m := &db.PersonaMapping{}
+	err := s.db.Conn().QueryRow(
+		"SELECT id, project, persona, created_at FROM persona_mappings WHERE project = ?", project,
+	).Scan(&m.ID, &m.Project, &m.Persona, &m.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get persona mapping: %w", err)
+	}
+	return m, nil
+}
+
+func (s *Store) ListPersonaMappings() ([]db.PersonaMapping, error) {
+	rows, err := s.db.Conn().Query(
+		"SELECT id, project, persona, created_at FROM persona_mappings ORDER BY project",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list persona mappings: %w", err)
+	}
+	defer rows.Close()
+	var mappings []db.PersonaMapping
+	for rows.Next() {
+		var m db.PersonaMapping
+		if err := rows.Scan(&m.ID, &m.Project, &m.Persona, &m.CreatedAt); err != nil {
+			return nil, err
+		}
+		mappings = append(mappings, m)
+	}
+	return mappings, rows.Err()
+}
+
+func (s *Store) DeletePersonaMapping(project string) error {
+	_, err := s.db.Conn().Exec("DELETE FROM persona_mappings WHERE project = ?", project)
+	return err
+}
+
+func (s *Store) GetBackupConfig() (*db.BackupConfig, error) {
+	c := &db.BackupConfig{}
+	var lastBackup sql.NullString
+	err := s.db.Conn().QueryRow(
+		"SELECT id, provider, local_path, auto_backup, interval_hours, last_backup, created_at, updated_at FROM backup_config ORDER BY id LIMIT 1",
+	).Scan(&c.ID, &c.Provider, &c.LocalPath, &c.AutoBackup, &c.IntervalHours, &lastBackup, &c.CreatedAt, &c.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get backup config: %w", err)
+	}
+	if lastBackup.Valid {
+		c.LastBackup = lastBackup.String
+	}
+	return c, nil
+}
+
+func (s *Store) SetBackupConfig(provider, localPath string, autoBackup bool, intervalHours int) (*db.BackupConfig, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	// Delete existing config then insert new one (single-row table)
+	s.db.Conn().Exec("DELETE FROM backup_config")
+	_, err := s.db.Conn().Exec(
+		`INSERT INTO backup_config (provider, local_path, auto_backup, interval_hours, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		provider, localPath, autoBackup, intervalHours, now, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("set backup config: %w", err)
+	}
+	return &db.BackupConfig{Provider: provider, LocalPath: localPath, AutoBackup: autoBackup, IntervalHours: intervalHours, CreatedAt: now, UpdatedAt: now}, nil
+}
+
+func (s *Store) UpdateBackupLastBackup(id int64, lastBackup string) error {
+	_, err := s.db.Conn().Exec("UPDATE backup_config SET last_backup = ?, updated_at = ? WHERE id = ?", lastBackup, lastBackup, id)
+	return err
+}
+
+func (s *Store) RecordBackup(timestamp, provider, checksum, archivePath string, fileSize int64, personaCount, memoryCount, skillCount int) (*db.Backup, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := s.db.Conn().Exec(
+		`INSERT INTO backups (timestamp, provider, checksum, persona_count, memory_count, skill_count, archive_path, file_size, status, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)`,
+		timestamp, provider, checksum, personaCount, memoryCount, skillCount, archivePath, fileSize, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("record backup: %w", err)
+	}
+	id, _ := result.LastInsertId()
+	return &db.Backup{ID: id, Timestamp: timestamp, Provider: provider, Checksum: checksum, PersonaCount: personaCount, MemoryCount: memoryCount, SkillCount: skillCount, ArchivePath: archivePath, FileSize: fileSize, Status: "completed", CreatedAt: now}, nil
+}
+
+func (s *Store) ListBackups(limit int) ([]db.Backup, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	rows, err := s.db.Conn().Query(
+		"SELECT id, timestamp, provider, checksum, persona_count, memory_count, skill_count, archive_path, file_size, status, error_msg, created_at FROM backups ORDER BY timestamp DESC LIMIT ?", limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list backups: %w", err)
+	}
+	defer rows.Close()
+	var backups []db.Backup
+	for rows.Next() {
+		var b db.Backup
+		if err := rows.Scan(&b.ID, &b.Timestamp, &b.Provider, &b.Checksum, &b.PersonaCount, &b.MemoryCount, &b.SkillCount, &b.ArchivePath, &b.FileSize, &b.Status, &b.ErrorMsg, &b.CreatedAt); err != nil {
+			return nil, err
+		}
+		backups = append(backups, b)
+	}
+	return backups, rows.Err()
+}
+
+func (s *Store) ListPersonaNames() ([]string, error) {
+	rows, err := s.db.Conn().Query(
+		"SELECT DISTINCT name FROM persona_mappings ORDER BY name",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var names []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		names = append(names, n)
+	}
+	return names, rows.Err()
+}

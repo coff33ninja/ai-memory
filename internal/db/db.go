@@ -193,6 +193,45 @@ CREATE TABLE IF NOT EXISTS project_contexts (
 
 CREATE INDEX IF NOT EXISTS idx_project_contexts_name ON project_contexts(name);
 CREATE INDEX IF NOT EXISTS idx_project_contexts_active ON project_contexts(is_active);
+
+CREATE TABLE IF NOT EXISTS persona_mappings (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	project     TEXT    NOT NULL,
+	persona     TEXT    NOT NULL,
+	created_at  TEXT    NOT NULL,
+	UNIQUE(project)
+);
+
+CREATE INDEX IF NOT EXISTS idx_persona_mappings_project ON persona_mappings(project);
+
+CREATE TABLE IF NOT EXISTS backup_config (
+	id              INTEGER PRIMARY KEY AUTOINCREMENT,
+	provider        TEXT    NOT NULL DEFAULT 'local',
+	local_path      TEXT    NOT NULL DEFAULT '',
+	auto_backup     INTEGER NOT NULL DEFAULT 0,
+	interval_hours  INTEGER NOT NULL DEFAULT 24,
+	last_backup     TEXT,
+	created_at      TEXT    NOT NULL,
+	updated_at      TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS backups (
+	id              INTEGER PRIMARY KEY AUTOINCREMENT,
+	timestamp       TEXT    NOT NULL,
+	provider        TEXT    NOT NULL,
+	checksum        TEXT    NOT NULL DEFAULT '',
+	persona_count   INTEGER NOT NULL DEFAULT 0,
+	memory_count    INTEGER NOT NULL DEFAULT 0,
+	skill_count     INTEGER NOT NULL DEFAULT 0,
+	archive_path    TEXT    NOT NULL DEFAULT '',
+	file_size       INTEGER NOT NULL DEFAULT 0,
+	status          TEXT    NOT NULL DEFAULT 'pending',
+	error_msg       TEXT    NOT NULL DEFAULT '',
+	created_at      TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_backups_timestamp ON backups(timestamp);
+CREATE INDEX IF NOT EXISTS idx_backups_provider ON backups(provider);
 `
 
 type DB struct {

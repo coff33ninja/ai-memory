@@ -310,11 +310,27 @@ func main() {
 		case "delete_user_profile":
 			return handleDeleteUserProfile(store, args)
 		case "set_project_context":
-			return handleSetProjectContext(store, args)
+			return handleSetProjectContext(store, pm, args)
 		case "get_project_context":
 			return handleGetActiveProjectContext(store)
 		case "list_project_contexts":
 			return handleListProjectContexts(store)
+		case "map_persona":
+			return handleMapPersona(store, args)
+		case "unmap_persona":
+			return handleUnmapPersona(store, args)
+		case "list_persona_mappings":
+			return handleListPersonaMappings(store)
+		case "backup_config":
+			return handleBackupConfig(store, args)
+		case "list_backup_drives":
+			return handleListBackupDrives()
+		case "backup":
+			return handleBackup(pm, store, args)
+		case "restore":
+			return handleRestore(pm, store, args)
+		case "backup_status":
+			return handleBackupStatus(store)
 		default:
 			return nil, fmt.Errorf("unknown tool: %s", name)
 		}
@@ -349,6 +365,8 @@ func main() {
 			return handleUserProfileResource(store)
 		case uri == "project://active":
 			return handleGetActiveProjectContext(store)
+		case uri == "backup://status":
+			return handleBackupStatus(store)
 		default:
 			return nil, fmt.Errorf("unknown resource: %s", uri)
 		}
@@ -373,6 +391,9 @@ func main() {
 			return nil, fmt.Errorf("unknown prompt: %s", name)
 		}
 	})
+
+	// Start auto-backup goroutine
+	go startAutoBackup(pm, store)
 
 	// Start serving
 	if err := srv.Serve(); err != nil {

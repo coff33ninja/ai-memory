@@ -91,3 +91,36 @@ type ProjectContext struct {
 	LastUsed  string `json:"last_used"`
 	CreatedAt string `json:"created_at"`
 }
+
+type PersonaMapping struct {
+	ID        int64  `json:"id"`
+	Project   string `json:"project"`
+	Persona   string `json:"persona"`
+	CreatedAt string `json:"created_at"`
+}
+
+type BackupConfig struct {
+	ID            int64  `json:"id"`
+	Provider      string `json:"provider"`
+	LocalPath     string `json:"local_path"`
+	AutoBackup    bool   `json:"auto_backup"`
+	IntervalHours int    `json:"interval_hours"`
+	LastBackup    string `json:"last_backup"`
+	CreatedAt     string `json:"created_at"`
+	UpdatedAt     string `json:"updated_at"`
+}
+
+type Backup struct {
+	ID           int64  `json:"id"`
+	Timestamp    string `json:"timestamp"`
+	Provider     string `json:"provider"`
+	Checksum     string `json:"checksum"`
+	PersonaCount int    `json:"persona_count"`
+	MemoryCount  int    `json:"memory_count"`
+	SkillCount   int    `json:"skill_count"`
+	ArchivePath  string `json:"archive_path"`
+	FileSize     int64  `json:"file_size"`
+	Status       string `json:"status"`
+	ErrorMsg     string `json:"error_msg"`
+	CreatedAt    string `json:"created_at"`
+}

@@ -512,6 +512,81 @@ var DefaultTools = []ToolDef{
 		Description: "List all stored project contexts",
 		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 	},
+	{
+		Name:        "map_persona",
+		Description: "Map a project to a persona — auto-switches persona when project is activated via set_project_context",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"project": map[string]interface{}{"type": "string", "description": "Project name (must match a stored project context)"},
+				"persona": map[string]interface{}{"type": "string", "description": "Persona name to auto-switch to"},
+			},
+			"required": []string{"project", "persona"},
+		},
+	},
+	{
+		Name:        "unmap_persona",
+		Description: "Remove a persona mapping for a project",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"project": map[string]interface{}{"type": "string", "description": "Project name"},
+			},
+			"required": []string{"project"},
+		},
+	},
+	{
+		Name:        "list_persona_mappings",
+		Description: "List all project-to-persona mappings",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+	},
+	{
+		Name:        "backup_config",
+		Description: "Configure backup settings — provider, auto-backup interval. Providers: local, google_drive, onedrive, dropbox, box, pcloud, icloud, mega, nextcloud, syncthing, github",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"provider":       map[string]interface{}{"type": "string", "enum": []string{"local", "google_drive", "onedrive", "dropbox", "box", "pcloud", "icloud", "mega", "nextcloud", "syncthing", "github"}, "description": "Backup provider (default: local)"},
+				"local_path":     map[string]interface{}{"type": "string", "description": "Local directory path for local provider (e.g. 'D:\\\\ai-memory-backups')"},
+				"auto_backup":    map[string]interface{}{"type": "boolean", "description": "Enable auto-backup (default: false)"},
+				"interval_hours": map[string]interface{}{"type": "integer", "description": "Auto-backup interval in hours (default: 24)"},
+			},
+			"required": []string{"provider"},
+		},
+	},
+	{
+		Name:        "list_backup_drives",
+		Description: "Detect all available backup locations — drive letters, cloud sync folders, and GitHub. Shows free space for each. Run this before backup_config to pick a destination.",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+	},
+	{
+		Name:        "backup",
+		Description: "Create a backup of all personas, memories, and skills to configured provider",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"provider": map[string]interface{}{"type": "string", "description": "Override provider (uses config default if empty)"},
+				"password": map[string]interface{}{"type": "string", "description": "Encryption password (uses config key if empty)"},
+			},
+		},
+	},
+	{
+		Name:        "restore",
+		Description: "Restore from a backup — downloads archive and restores all data",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"backup_id": map[string]interface{}{"type": "integer", "description": "Specific backup ID to restore (default: latest)"},
+				"provider":  map[string]interface{}{"type": "string", "description": "Filter by provider (e.g. 'github', 'local')"},
+				"password":  map[string]interface{}{"type": "string", "description": "Decryption password if encrypted"},
+			},
+		},
+	},
+	{
+		Name:        "backup_status",
+		Description: "Show backup configuration and recent backup history",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+	},
 }
 
 var DefaultResources = []ResourceDef{
@@ -529,6 +604,7 @@ var DefaultResources = []ResourceDef{
 	{URI: "evolution://rules", Name: "Evolved Rules", Description: "Behavioral rules learned from experience", MimeType: "text/plain"},
 	{URI: "user://profile", Name: "User Profile", Description: "What the AI knows about this user — name, interests, preferences", MimeType: "text/plain"},
 	{URI: "project://active", Name: "Active Project", Description: "Currently active project context — name, root, type, language", MimeType: "text/plain"},
+	{URI: "backup://status", Name: "Backup Status", Description: "Backup configuration and recent backup history", MimeType: "text/plain"},
 }
 
 var DefaultTemplates = []TemplateDef{

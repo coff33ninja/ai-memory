@@ -188,6 +188,19 @@ func handleContextStartup(pm *persona.Manager, mem *memory.Store, skillsStore *s
 		projectSource = fmt.Sprintf("set by AI (project: %s)", activeProject.Name)
 	}
 
+	// Auto-restore persona if mapped to active project
+	if pm != nil && activeProject != nil {
+		mapping, _ := mem.GetPersonaMapping(activeProject.Name)
+		if mapping != nil {
+			personaObj := pm.Get(mapping.Persona)
+			if personaObj != nil && pm.Active() != mapping.Persona {
+				if _, err := pm.Switch(mapping.Persona); err == nil {
+					fmt.Fprintf(os.Stderr, "info: auto-switched to persona %q for project %q\n", mapping.Persona, activeProject.Name)
+				}
+			}
+		}
+	}
+
 	// Check if we're using the auto-created default persona
 	isDefault := false
 	if pm != nil {
@@ -257,6 +270,14 @@ func handleContextStartup(pm *persona.Manager, mem *memory.Store, skillsStore *s
 		sb.WriteString("\n")
 	} else {
 		sb.WriteString("## User Profile\n  No user profile data yet. Learn about the user from conversations and use `store_user_profile` to remember their name, interests, and preferences.\n\n")
+	}
+
+	// Backup status
+	backups, _ := mem.ListBackups(1)
+	if len(backups) > 0 {
+		sb.WriteString(fmt.Sprintf("## Backup\n  Last backup: %s (%s)\n\n", backups[0].Timestamp, backups[0].Provider))
+	} else {
+		sb.WriteString("## Backup\n  No backups configured. Use `backup_config` to set up backup to GitHub, local, or cloud.\n\n")
 	}
 
 	if len(pending) > 0 {
