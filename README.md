@@ -470,6 +470,7 @@ ai-memory requires CGO for sqlite3 and onnxruntime. The `CGO_TRIGGER` file in th
 - [Architecture](docs/ARCHITECTURE.md) — package structure, data flows, database schema
 - [Evolution](docs/EVOLUTION.md) — self-evolution system design and history
 - [Quick Reference](docs/QUICK-REFERENCE.md) — storage paths, tool cheatsheet
+- [Backup Automation](docs/BACKUP-AUTOMATION.md) — standalone backup scheduler (9am/7pm daily)
 - [ADR-002](docs/adr/ADR-002-go-rewrite.md) — decision record for Go rewrite
 - [Changelog](docs/meta/CHANGELOG.md) — version history
 - [Tools](docs/reference/tools.md) — auto-generated tool catalog
