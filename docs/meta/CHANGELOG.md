@@ -5,6 +5,23 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-07-20
+
+### Added
+- Evolution engine test suite: 62 tests across tracker, consolidator, adapter, engine, and types
+- `TestSimilarMemories`, `TestMergeMemories` — similarity detection and merge verification
+- `TestConsolidateMerge`, `TestConsolidateElevate`, `TestConsolidatePrune`, `TestConsolidateCreatesPatterns`, `TestConsolidateDoesNotDuplicatePatterns` — full consolidation pipeline
+- `TestAdaptTraitsToneChange`, `TestAdaptTraitsSkillsAdded` — trait adaptation with persona updates
+- `TestShouldEvolveInteractionThreshold`, `TestShouldEvolveMemoryThreshold` — evolution trigger logic
+- `TestEvolve`, `TestLogInteractionAutoEvolve` — end-to-end evolution cycles
+- `TestGetEvolvedRulesWithPatterns`, `TestDiscoverSkills` — rule evolution and skill discovery
+- `TestLogToolKnowledge`, `TestLogToolRecipe`, `TestLogToolError`, `TestUpsertAndGetMCPServer` — tool ecosystem tracking
+- `push-and-release.ps1` documented as dev tool requiring OpenCode Desktop in README
+
+### Fixed
+- `SimilarMemories` scan mismatch — SELECT'd 4 columns but scanned 3, silently skipping all rows; now scans all 4 and compares `experience + lesson` combined
+- Pattern dedup LIKE format — `createPatterns` produces `'Pattern observed N times: tag'` but dedup checked for `'Pattern: %(tag)%%'`; fixed to match actual format
+
 ## [0.1.6] - 2026-07-20
 
 ### Added

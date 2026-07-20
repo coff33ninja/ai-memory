@@ -504,18 +504,19 @@ func (t *Tracker) SimilarMemories(threshold float64) ([]int64, error) {
 	type memEntry struct {
 		id     int64
 		text   string
+		lesson string
 		embBin []byte
 	}
 	var entries []memEntry
 	for rows.Next() {
 		var e memEntry
-		if err := rows.Scan(&e.id, &e.text, &e.embBin); err != nil {
+		if err := rows.Scan(&e.id, &e.text, &e.lesson, &e.embBin); err != nil {
 			continue
 		}
 		entries = append(entries, e)
 	}
 
-	// Find pairs with high similarity
+	// Find pairs with high similarity using combined experience + lesson text
 	var toMerge []int64
 	seen := make(map[int64]bool)
 	for i := 0; i < len(entries); i++ {
@@ -526,8 +527,9 @@ func (t *Tracker) SimilarMemories(threshold float64) ([]int64, error) {
 			if seen[entries[j].id] {
 				continue
 			}
-			// Simple Jaccard on words as fast pre-filter
-			sim := wordOverlap(entries[i].text, entries[j].text)
+			combinedI := entries[i].text + " " + entries[i].lesson
+			combinedJ := entries[j].text + " " + entries[j].lesson
+			sim := wordOverlap(combinedI, combinedJ)
 			if sim >= threshold {
 				toMerge = append(toMerge, entries[i].id, entries[j].id)
 				seen[entries[i].id] = true

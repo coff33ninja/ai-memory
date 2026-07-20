@@ -177,7 +177,7 @@ func (c *Consolidator) createPatterns(persona string) (int, error) {
 		var exists bool
 		err := c.tracker.GetDB().QueryRow(
 			"SELECT COUNT(*) > 0 FROM memories WHERE experience LIKE ? AND tags LIKE '%pattern%'",
-			fmt.Sprintf("Pattern: %%(%s)%%", p.Tags),
+			fmt.Sprintf("Pattern observed %% times: %s", p.Tags),
 		).Scan(&exists)
 		if err != nil || exists {
 			continue

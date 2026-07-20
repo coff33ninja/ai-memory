@@ -440,7 +440,7 @@ ai-memory requires CGO for sqlite3 and onnxruntime. The `CGO_TRIGGER` file in th
 | `scripts/lint.ps1` | go vet + build check |
 | `scripts/test.ps1` | Full test suite |
 | `scripts/install.ps1` | Clone, build, install to AppData |
-| `scripts/push-and-release.ps1` | Version bump, commit, tag, push, wait for release |
+| `scripts/push-and-release.ps1` | Version bump, commit, tag, push, wait for release (dev tool — requires [OpenCode Desktop](https://github.com/anomalyco/opencode)) |
 | `scripts/gen-icons.ps1` | Generate Windows icon resource |
 | `scripts/gen-tools-doc.go` | Auto-generate tools.md from source |
 
@@ -499,7 +499,7 @@ The project follows an atomic commit + conventional commits workflow:
 3. Stage and commit with conventional message (`feat:`, `fix:`, `docs:`, etc.)
 4. Bump VERSION file
 5. Update CHANGELOG.md
-6. Run `scripts/push-and-release.ps1` to handle commit, tag, push, and release creation
+6. Run `scripts/push-and-release.ps1` to handle commit, tag, push, and release creation (developer tool — requires [OpenCode Desktop](https://github.com/anomalyco/opencode))
 
 Never push directly — always use the push-and-release script. This ensures proper tagging, release workflow, and binary distribution.
 
