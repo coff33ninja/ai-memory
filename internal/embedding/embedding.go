@@ -194,7 +194,7 @@ func CloseEmbedder() {
 func ensureFile(name, url string) (string, error) {
 	dir := filesDir()
 	dst := filepath.Join(dir, name)
-	if _, err := os.Stat(dst); err == nil {
+	if info, err := os.Stat(dst); err == nil && info.Size() > 0 {
 		return dst, nil
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -235,7 +235,7 @@ func ensureORTLib() (string, error) {
 	name := ortLibName()
 	dst := filepath.Join(dir, name)
 
-	if _, err := os.Stat(dst); err == nil {
+	if info, err := os.Stat(dst); err == nil && info.Size() > 0 {
 		return dst, nil
 	}
 

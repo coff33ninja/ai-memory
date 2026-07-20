@@ -5,6 +5,11 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-07-20
+
+### Fixed
+- `ensureFile` and `ensureORTLib` now check file size > 0 before skipping download — a 0-byte corrupt file from a failed prior download caused the ONNX model and runtime to never re-download
+
 ## [0.1.7] - 2026-07-20
 
 ### Added
