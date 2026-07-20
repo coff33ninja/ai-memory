@@ -139,7 +139,7 @@ Override with `AI_MEMORY_DIR` environment variable.
 | `get_tool_knowledge` | `tool_name` | Read manual |
 | `list_tool_knowledge` | — | List all entries |
 | `get_tool_recipes` | `tool_name` | Get recipes |
-| `record_recipe_outcome` | `tool_name`, `recipe_title`, `outcome`, `notes?` | Track success/failure |
+| `record_recipe_outcome` | `recipe_id`, `success` (bool), `notes?` | Track success/failure |
 
 ### Tool Gaps
 
@@ -191,6 +191,8 @@ Override with `AI_MEMORY_DIR` environment variable.
 | `evolution://stats` | Interaction stats |
 | `evolution://rules` | Adapted behavior rules |
 | `user://profile` | User profile data |
+| `project://active` | Active project context |
+| `backup://status` | Backup status and history |
 
 ## Prompts
 

@@ -14,36 +14,37 @@ cmd/ai-memory-server/
 ├── tool_knowledge_handlers.go   log_tool_knowledge, recipes, recipe outcomes
 ├── error_handlers.go            log_tool_error, MCP server registry
 ├── user_profile_handlers.go     store, get, list, delete user profile fields
+├── project_handlers.go          set_project_context, map_persona, list_persona_mappings
+├── backup_handlers.go           backup, restore, backup_config, list_backup_drives
+├── backup_config_file.go        BackupRecord, BackupConfigFile structs
+├── drives_windows.go            Windows drive/cloud folder detection
 
 internal/
 ├── mcp/
 │   ├── server.go                JSON-RPC 2.0 stdio server, dispatch, auth
-│   └── defs.go                  44 tools, 13 resources, 7 prompts (canonical definitions)
-├── memory/
-│   ├── store.go                 SQLite operations, migrations, FTS5
-│   ├── search.go                Semantic + keyword search across tables
+│   └── defs.go                  55 tools, 15 resources, 3 templates, 7 prompts (canonical definitions)
+├── db/
+│   ├── db.go                    SQLite schema migrations, all CREATE TABLE statements
+│   └── types.go                 Shared database types
+├── embedding/
 │   └── embedding.go             ONNX Runtime session, tokenizer, cosine similarity
+├── memory/
+│   └── memory.go                SQLite operations for memories, skills, skill_usage
 ├── rag/
-│   ├── rag.go                   Unified search across persona + shared DBs
-│   ├── store.go                 Store memory entries, skill index, tool knowledge
-│   └── embedding.go             Re-exports for convenience
+│   └── rag.go                   Unified search across persona + shared DBs
 ├── skills/
-│   ├── skills.go                Git clone/pull, SKILL.md parsing, SQLite indexing
-│   ├── catalog.go               Skill listing, description search
-│   ├── index.go                 Embedding-based skill search
-│   └── usage.go                 Skill usage tracking and pattern detection
+│   └── skills.go                Git clone/pull, SKILL.md parsing, SQLite indexing
 ├── skills/ai-skills/            Cloned skill repository (51+ skills)
-├── project/
-│   ├── context.go               detectProject, getRelevantSkillsForProject
-│   └── project.go               Supported projects: react, go, rust, opencode, etc.
-├── skills.go                    loadSkills, searchSkills
 ├── evolution/
-│   ├── engine.go                Full evolution cycle (tone adaptation, skill discovery, gap closure, consolidation)
-│   └── auto.go                  Auto-evolve every 10 interactions
+│   ├── engine.go                Full evolution cycle, auto-evolve every 10 interactions
+│   ├── tracker.go               Interaction outcomes, tool gaps, tool knowledge, errors
+│   ├── consolidator.go          Merge similar memories, elevate, prune
+│   ├── adapter.go               Tone and trait adaptation from performance data
+│   └── types.go                 InteractionOutcome, EvolutionEntry, ToolGap, ToolKnowledge, etc.
 ├── persona/
-│   └── manager.go               Persona registry, scoped memory store
-└── types/
-    └── types.go                 Memory, Skill, SearchResult, SkillUsage, MCPError, ToolKnowledge, etc.
+│   └── persona.go               Persona registry, scoped memory store, greeting matching
+└── version/
+    └── version.go               Build version (injected via ldflags)
 ```
 
 ## Data Flow
@@ -87,8 +88,8 @@ AI calls search(query, topK, type)
 ### Self-Evolution
 
 ```
-log_interaction(outcome=1-5, notes)
-→ Insert into interactions table
+log_interaction(outcome_score=1-5, summary)
+→ Insert into interaction_outcomes table
 → Every 10 interactions: auto-evolve()
   → Tone adaptation: recalculate personalityScores from outcomes
   → Skill discovery: find used skills, discover patterns
@@ -302,6 +303,66 @@ CREATE TABLE user_profiles (
   UNIQUE(field)
 );
 CREATE INDEX idx_user_profiles_field ON user_profiles(field);
+```
+
+### project_contexts
+
+```sql
+CREATE TABLE project_contexts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_name TEXT NOT NULL UNIQUE,
+  project_type TEXT NOT NULL,
+  root_path TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+### persona_mappings
+
+```sql
+CREATE TABLE persona_mappings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project TEXT NOT NULL UNIQUE,
+  persona TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+### backup_config
+
+```sql
+CREATE TABLE backup_config (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL DEFAULT 'local',
+  auto_backup INTEGER NOT NULL DEFAULT 0,
+  interval_hours INTEGER NOT NULL DEFAULT 24,
+  local_path TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+### backups
+
+```sql
+CREATE TABLE backups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  backup_path TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  file_size INTEGER NOT NULL DEFAULT 0,
+  encrypted INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+```
+
+### meta
+
+```sql
+CREATE TABLE meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 ```
 
 ### personas.json

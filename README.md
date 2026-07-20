@@ -257,8 +257,8 @@ Builds a graph of which skills work well together for similar tasks.
 
 ```
 log_interaction(
-  outcome: 5,  # 1-5 scale: 1=failed, 5=excellent
-  notes: "Successfully fixed the crash by pinning ORT to the correct thread"
+  outcome_score: 5,  # 1-5 scale: 1=failed, 5=excellent
+  summary: "Successfully fixed the crash by pinning ORT to the correct thread"
 )
 ```
 
@@ -289,11 +289,11 @@ When you learn how a tool works, build a manual entry:
 ```
 log_tool_knowledge(
   tool_name: "computer_use_click",
-  knowledge_type: "manual",
-  title: "Click precision",
-  description: "Click at exact coordinates. Double-click is 2 rapid single clicks.",
-  content: "Use get_cursor_position to verify target coordinates before clicking. For menus, use click_menu_item instead.",
-  outcome: "success"
+  how_to_use: "Click at screen coordinates x,y. Supports single and double click.",
+  what_works: "Use get_cursor_position to verify target coordinates before clicking.",
+  what_fails: "Clicking without verifying coordinates can hit wrong targets.",
+  params: "x, y (required); button (left/right/middle); clicks (1 or 2)",
+  examples: "computer_use_click(x: 100, y: 200, button: 'left', clicks: 1)"
 )
 ```
 
@@ -302,9 +302,9 @@ log_tool_knowledge(
 ```
 log_tool_recipe(
   tool_name: "computer_use_chain",
-  title: "Login sequence",
-  description: "Automated login to a web app",
-  steps: '[{"tool":"click","args":{"x":100,"y":200}},{"tool":"type","args":{"text":"user"}},{"tool":"click","args":{"x":300,"y":400}},{"tool":"type","args":{"text":"pass"}}]'
+  recipe_name: "Login sequence",
+  steps: "1. Click username field\n2. Type username\n3. Click password field\n4. Type password\n5. Click submit",
+  use_case: "Automated login to a web app"
 )
 ```
 
@@ -329,7 +329,7 @@ register_mcp_server(
 
 ## MCP Interface
 
-### Tools (57)
+### Tools (55)
 
 | Category | Tool | Purpose |
 |----------|------|---------|
@@ -351,6 +351,12 @@ register_mcp_server(
 | | `list_personas` | List all personas |
 | | `switch_persona` | Show active persona |
 | | `delete_persona` | Delete a persona |
+| | `list_persona_mappings` | List project-to-persona mappings |
+| **Project Context** | `set_project_context` | Set active project context |
+| | `get_project_context` | Get active project context |
+| | `list_project_contexts` | List stored project contexts |
+| | `map_persona` | Map project to persona |
+| | `unmap_persona` | Remove project-persona mapping |
 | **Evolution** | `log_interaction` | Record interaction outcome (score 1-5) |
 | | `evolve` | Trigger full evolution cycle |
 | | `consolidate` | Merge similar memories, prune old |
@@ -377,8 +383,12 @@ register_mcp_server(
 | | `get_user_profile` | Get a profile field |
 | | `list_user_profile` | List all profile fields |
 | | `delete_user_profile` | Delete a profile field |
+| **Backup** | `backup` | Create a backup |
+| | `backup_config` | Configure backup provider and interval |
+| | `backup_status` | Show backup history and config |
+| | `list_backup_drives` | Detect available backup locations |
 
-### Resources (13)
+### Resources (15)
 
 | URI | Description |
 |-----|-------------|
@@ -395,6 +405,8 @@ register_mcp_server(
 | `evolution://stats` | Interaction stats and performance |
 | `evolution://rules` | Adapted behavior rules |
 | `user://profile` | User profile data |
+| `project://active` | Active project context |
+| `backup://status` | Backup status and history |
 
 ### Prompts (7)
 
@@ -516,7 +528,7 @@ the persona system means you can have a debugger that remembers crash patterns, 
 
 the self-evolution is the weirdest part. every 10 interactions, the AI reviews its own performance, consolidates memories, discovers new skills, and updates its behavioral rules. it's not sentient, it's just a loop that runs `analyze → consolidate → discover → adapt`. but from the user's perspective, the assistant gets slightly better at their specific use case over time. that's the point.
 
-"how many MCP tools does it have?" — 44. because apparently that's what it takes to give an AI a proper memory system. there are tools for storing, searching, reviewing, evolving, profiling, and managing personas. there's even a tool for generating tool documentation automatically. it's tools all the way down.
+"how many MCP tools does it have?" — 55. because apparently that's what it takes to give an AI a proper memory system. there are tools for storing, searching, reviewing, evolving, profiling, and managing personas. there's even a tool for generating tool documentation automatically. it's tools all the way down.
 
 **MCP server? more like MCP server, please.**
 

@@ -40,25 +40,29 @@ Writes three files:
 
 ## Data Tables
 
-### interactions
+### interaction_outcomes
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | INTEGER | Primary key |
-| timestamp | TEXT | When it happened |
-| outcome | INTEGER | 1-5 score |
-| notes | TEXT | What happened |
 | persona | TEXT | Which persona was active |
+| summary | TEXT | Brief summary of what happened |
+| outcome_score | INTEGER | 1-5 score |
+| skills_used | TEXT | Comma-separated skill names |
+| tone_used | TEXT | Tone used during interaction |
+| created_at | TEXT | Timestamp |
 
 ### tool_gaps
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | INTEGER | Primary key |
-| tool_name | TEXT | Tool with the gap |
-| description | TEXT | What's missing |
+| persona | TEXT | Which persona recorded it |
+| need | TEXT | What capability is missing |
+| context | TEXT | What you were trying to do |
+| suggested | TEXT | Suggested tool/MCP server if known |
 | resolved | INTEGER | 0 = open, 1 = resolved |
-| resolution | TEXT | How it was resolved |
+| created_at | TEXT | Timestamp |
 
 ## Configuration
 
