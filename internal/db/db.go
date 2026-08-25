@@ -12,16 +12,18 @@ import (
 
 const schema = `
 CREATE TABLE IF NOT EXISTS memories (
-	id          INTEGER PRIMARY KEY AUTOINCREMENT,
-	date        TEXT    NOT NULL,
-	experience  TEXT    NOT NULL,
-	lesson      TEXT    NOT NULL,
-	impact      TEXT    NOT NULL DEFAULT 'under review',
-	tags        TEXT    DEFAULT '',
-	scope       TEXT    NOT NULL DEFAULT 'private',
-	embedding   BLOB,
-	created_at  TEXT    NOT NULL,
-	updated_at  TEXT    NOT NULL
+	id            INTEGER PRIMARY KEY AUTOINCREMENT,
+	date          TEXT    NOT NULL,
+	experience    TEXT    NOT NULL,
+	lesson        TEXT    NOT NULL,
+	impact        TEXT    NOT NULL DEFAULT 'under review',
+	tags          TEXT    DEFAULT '',
+	scope         TEXT    NOT NULL DEFAULT 'private',
+	embedding     BLOB,
+	skill_tags    TEXT    DEFAULT '',
+	skill_scores  TEXT    DEFAULT '{}',
+	created_at    TEXT    NOT NULL,
+	updated_at    TEXT    NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS skills (
@@ -255,11 +257,26 @@ func Open(dir string) (*DB, error) {
 		conn.Close()
 		return nil, fmt.Errorf("init schema: %w", err)
 	}
+	if err := migrate(conn); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
 	return &DB{conn: conn}, nil
 }
 
 func (d *DB) Close() error {
 	return d.conn.Close()
+}
+
+func migrate(conn *sql.DB) error {
+	migrations := []string{
+		"ALTER TABLE memories ADD COLUMN skill_tags TEXT DEFAULT ''",
+		"ALTER TABLE memories ADD COLUMN skill_scores TEXT DEFAULT '{}'",
+	}
+	for _, m := range migrations {
+		conn.Exec(m)
+	}
+	return nil
 }
 
 func (d *DB) Conn() *sql.DB {

@@ -7,14 +7,20 @@ import (
 	"time"
 
 	"github.com/coff33ninja/ai-memory/internal/db"
+	"github.com/coff33ninja/ai-memory/internal/embedding"
+	"github.com/coff33ninja/ai-memory/internal/skillaware"
 )
 
 type Store struct {
-	db *db.DB
+	db         *db.DB
+	skillCache *skillaware.Cache
+	emb        *embedding.Embedder
 }
 
-func New(d *db.DB) *Store {
-	return &Store{db: d}
+func New(d *db.DB, emb *embedding.Embedder) *Store {
+	cache := skillaware.NewCache(d.Conn())
+	cache.Refresh()
+	return &Store{db: d, skillCache: cache, emb: emb}
 }
 
 func (s *Store) Store(experience, lesson string, tags []string, scope string) (*db.Memory, error) {
@@ -23,9 +29,29 @@ func (s *Store) Store(experience, lesson string, tags []string, scope string) (*
 		m.Scope = scope
 	}
 	tagStr := strings.Join(m.Tags, ",")
+
+	var skillTags string
+	var skillScores string
+
+	if s.emb != nil && s.skillCache != nil {
+		text := experience + " " + lesson
+		if len(text) > 512 {
+			text = text[:512]
+		}
+		memEmb, err := s.emb.Compute(text)
+		if err == nil && len(memEmb) > 0 {
+			skillTagsSlice, scores := skillaware.TagMemory(memEmb, s.skillCache.GetSkills())
+			if len(skillTagsSlice) > 0 {
+				skillTags = skillaware.TagsString(skillTagsSlice)
+				skillScores = skillaware.FormatScores(scores)
+			}
+			s.skillCache.MaybeRefresh()
+		}
+	}
+
 	result, err := s.db.Conn().Exec(
-		"INSERT INTO memories (date, experience, lesson, impact, tags, scope, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		m.Date, m.Experience, m.Lesson, m.Impact, tagStr, m.Scope, m.CreatedAt, m.UpdatedAt,
+		"INSERT INTO memories (date, experience, lesson, impact, tags, scope, skill_tags, skill_scores, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		m.Date, m.Experience, m.Lesson, m.Impact, tagStr, m.Scope, skillTags, skillScores, m.CreatedAt, m.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert memory: %w", err)
@@ -37,10 +63,10 @@ func (s *Store) Store(experience, lesson string, tags []string, scope string) (*
 
 func (s *Store) Get(id int64) (*db.Memory, error) {
 	m := &db.Memory{}
-	var tags string
+	var tags, skillTags, skillScores string
 	err := s.db.Conn().QueryRow(
-		"SELECT id, date, experience, lesson, impact, tags, scope, created_at, updated_at FROM memories WHERE id = ?", id,
-	).Scan(&m.ID, &m.Date, &m.Experience, &m.Lesson, &m.Impact, &tags, &m.Scope, &m.CreatedAt, &m.UpdatedAt)
+		"SELECT id, date, experience, lesson, impact, tags, scope, skill_tags, skill_scores, created_at, updated_at FROM memories WHERE id = ?", id,
+	).Scan(&m.ID, &m.Date, &m.Experience, &m.Lesson, &m.Impact, &tags, &m.Scope, &skillTags, &skillScores, &m.CreatedAt, &m.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -50,6 +76,10 @@ func (s *Store) Get(id int64) (*db.Memory, error) {
 	if tags != "" {
 		m.Tags = strings.Split(tags, ",")
 	}
+	if skillTags != "" {
+		m.SkillTags = strings.Split(skillTags, ",")
+	}
+	m.SkillScores = skillaware.ParseScores(skillScores)
 	return m, nil
 }
 
@@ -59,7 +89,7 @@ func (s *Store) ListPending() ([]db.Memory, error) {
 
 func (s *Store) ListAll() ([]db.Memory, error) {
 	rows, err := s.db.Conn().Query(
-		"SELECT id, date, experience, lesson, impact, tags, scope, created_at, updated_at FROM memories ORDER BY date DESC",
+		"SELECT id, date, experience, lesson, impact, tags, scope, skill_tags, skill_scores, created_at, updated_at FROM memories ORDER BY date DESC",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list memories: %w", err)
@@ -89,7 +119,7 @@ func (s *Store) setImpact(id int64, impact string) error {
 
 func (s *Store) listByImpact(impact string) ([]db.Memory, error) {
 	rows, err := s.db.Conn().Query(
-		"SELECT id, date, experience, lesson, impact, tags, scope, created_at, updated_at FROM memories WHERE impact = ? ORDER BY date DESC", impact,
+		"SELECT id, date, experience, lesson, impact, tags, scope, skill_tags, skill_scores, created_at, updated_at FROM memories WHERE impact = ? ORDER BY date DESC", impact,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list by impact: %w", err)
@@ -172,13 +202,17 @@ func scanMemories(rows *sql.Rows) ([]db.Memory, error) {
 	var memories []db.Memory
 	for rows.Next() {
 		var m db.Memory
-		var tags string
-		if err := rows.Scan(&m.ID, &m.Date, &m.Experience, &m.Lesson, &m.Impact, &tags, &m.Scope, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		var tags, skillTags, skillScores string
+		if err := rows.Scan(&m.ID, &m.Date, &m.Experience, &m.Lesson, &m.Impact, &tags, &m.Scope, &skillTags, &skillScores, &m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if tags != "" {
 			m.Tags = strings.Split(tags, ",")
 		}
+		if skillTags != "" {
+			m.SkillTags = strings.Split(skillTags, ",")
+		}
+		m.SkillScores = skillaware.ParseScores(skillScores)
 		memories = append(memories, m)
 	}
 	return memories, rows.Err()
@@ -449,4 +483,37 @@ func (s *Store) ListPersonaNames() ([]string, error) {
 		names = append(names, n)
 	}
 	return names, rows.Err()
+}
+
+func (s *Store) SearchBySkill(skill string, limit int) ([]db.Memory, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	rows, err := s.db.Conn().Query(
+		"SELECT id, date, experience, lesson, impact, tags, scope, skill_tags, skill_scores, created_at, updated_at FROM memories WHERE skill_tags LIKE ? ORDER BY date DESC LIMIT ?",
+		"%"+skill+"%", limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("search by skill: %w", err)
+	}
+	defer rows.Close()
+	return scanMemories(rows)
+}
+
+func (s *Store) SuggestSkillsForQuery(queryEmb []float32, topK int) []skillaware.SuggestResult {
+	if s.skillCache == nil {
+		return nil
+	}
+	return skillaware.SuggestSkills(queryEmb, s.skillCache.GetSkills(), topK)
+}
+
+func (s *Store) RefreshSkillCache() error {
+	if s.skillCache == nil {
+		return nil
+	}
+	return s.skillCache.Refresh()
+}
+
+func (s *Store) GetMemoriesBySkill(skill string, limit int) ([]db.Memory, error) {
+	return s.SearchBySkill(skill, limit)
 }

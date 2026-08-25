@@ -24,7 +24,7 @@ func (s *Searcher) SetSharedDB(shared *db.DB) {
 
 func (s *Searcher) SearchMemories(queryEmb []float32, topK int) ([]db.SearchResult, error) {
 	rows, err := s.db.Conn().Query(
-		"SELECT id, date, experience, lesson, impact, embedding FROM memories WHERE embedding IS NOT NULL",
+		"SELECT id, date, experience, lesson, impact, embedding, skill_tags, skill_scores FROM memories WHERE embedding IS NOT NULL",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query memories: %w", err)
@@ -32,25 +32,26 @@ func (s *Searcher) SearchMemories(queryEmb []float32, topK int) ([]db.SearchResu
 	defer rows.Close()
 
 	type scored struct {
-		id         int64
-		date       string
-		experience string
-		lesson     string
-		impact     string
-		score      float64
+		id          int64
+		date        string
+		experience  string
+		lesson      string
+		impact      string
+		score       float64
+		skillTags   string
+		skillScores string
 	}
 
 	var results []scored
 	for rows.Next() {
-		var id int64
-		var date, experience, lesson, impact string
+		var r scored
 		var embBlob []byte
-		if err := rows.Scan(&id, &date, &experience, &lesson, &impact, &embBlob); err != nil {
+		if err := rows.Scan(&r.id, &r.date, &r.experience, &r.lesson, &r.impact, &embBlob, &r.skillTags, &r.skillScores); err != nil {
 			continue
 		}
 		emb := embedding.BytesToFloat32(embBlob)
-		score := embedding.CosineSimilarity(queryEmb, emb)
-		results = append(results, scored{id, date, experience, lesson, impact, score})
+		r.score = embedding.CosineSimilarity(queryEmb, emb)
+		results = append(results, r)
 	}
 
 	for i := 1; i < len(results); i++ {
@@ -64,11 +65,15 @@ func (s *Searcher) SearchMemories(queryEmb []float32, topK int) ([]db.SearchResu
 
 	out := make([]db.SearchResult, topK)
 	for i, r := range results[:topK] {
+		content := r.lesson
+		if r.skillTags != "" {
+			content += "\nSkills: " + r.skillTags
+		}
 		out[i] = db.SearchResult{
 			Type:    "memory",
 			ID:      r.id,
 			Title:   fmt.Sprintf("%s — %s", r.date, r.experience),
-			Content: r.lesson,
+			Content: content,
 			Score:   r.score,
 		}
 	}

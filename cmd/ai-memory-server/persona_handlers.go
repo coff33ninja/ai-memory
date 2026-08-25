@@ -40,7 +40,7 @@ func handleOnboard(pm *persona.Manager, mem *memory.Store, args map[string]inter
 	}
 	defer pDB.Close()
 
-	pMem := memory.New(pDB)
+	pMem := memory.New(pDB, globalEmb)
 	_, err = pMem.Store(
 		fmt.Sprintf("Persona %q created: %s", name, identity),
 		"New persona onboarded with identity and purpose",
@@ -55,7 +55,7 @@ func handleOnboard(pm *persona.Manager, mem *memory.Store, args map[string]inter
 	sDir := pm.SharedDir()
 	sDB, err := openDB(sDir)
 	if err == nil {
-		sMem := memory.New(sDB)
+		sMem := memory.New(sDB, globalEmb)
 		sMem.Store(
 			fmt.Sprintf("Persona %q onboarded: %s", name, identity),
 			description,

@@ -587,6 +587,30 @@ var DefaultTools = []ToolDef{
 		Description: "Show backup configuration and recent backup history",
 		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
 	},
+	{
+		Name:        "suggest_skills",
+		Description: "Suggest relevant skills for a query based on semantic similarity",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"query": map[string]interface{}{"type": "string", "description": "Query to suggest skills for"},
+				"top_k": map[string]interface{}{"type": "integer", "description": "Max results (default 5)"},
+			},
+			"required": []string{"query"},
+		},
+	},
+	{
+		Name:        "skill_context",
+		Description: "Get memories related to a specific skill",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"skill": map[string]interface{}{"type": "string", "description": "Skill name to get context for"},
+				"limit": map[string]interface{}{"type": "integer", "description": "Max memories (default 20)"},
+			},
+			"required": []string{"skill"},
+		},
+	},
 }
 
 var DefaultResources = []ResourceDef{
@@ -605,6 +629,7 @@ var DefaultResources = []ResourceDef{
 	{URI: "user://profile", Name: "User Profile", Description: "What the AI knows about this user — name, interests, preferences", MimeType: "text/plain"},
 	{URI: "project://active", Name: "Active Project", Description: "Currently active project context — name, root, type, language", MimeType: "text/plain"},
 	{URI: "backup://status", Name: "Backup Status", Description: "Backup configuration and recent backup history", MimeType: "text/plain"},
+	{URI: "memory://skills/{name}/memories", Name: "Skill Memories", Description: "Memories related to a specific skill", MimeType: "text/plain"},
 }
 
 var DefaultTemplates = []TemplateDef{

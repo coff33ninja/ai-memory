@@ -3,15 +3,17 @@ package db
 import "time"
 
 type Memory struct {
-	ID         int64    `json:"id"`
-	Date       string   `json:"date"`
-	Experience string   `json:"experience"`
-	Lesson     string   `json:"lesson"`
-	Impact     string   `json:"impact"`
-	Tags       []string `json:"tags,omitempty"`
-	Scope      string   `json:"scope"`
-	CreatedAt  string   `json:"created_at"`
-	UpdatedAt  string   `json:"updated_at"`
+	ID          int64              `json:"id"`
+	Date        string             `json:"date"`
+	Experience  string             `json:"experience"`
+	Lesson      string             `json:"lesson"`
+	Impact      string             `json:"impact"`
+	Tags        []string           `json:"tags,omitempty"`
+	Scope       string             `json:"scope"`
+	SkillTags   []string           `json:"skill_tags,omitempty"`
+	SkillScores map[string]float64 `json:"skill_scores,omitempty"`
+	CreatedAt   string             `json:"created_at"`
+	UpdatedAt   string             `json:"updated_at"`
 }
 
 type Skill struct {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/coff33ninja/ai-memory/internal/db"
 	"github.com/coff33ninja/ai-memory/internal/embedding"
@@ -17,6 +18,7 @@ import (
 )
 
 var Version = version.Version
+var globalEmb *embedding.Embedder
 
 func main() {
 	dir := dataDir()
@@ -38,7 +40,7 @@ func main() {
 			pDir := pm.PersonaDir(p.Name)
 			pDB, pErr := db.Open(pDir)
 			if pErr == nil {
-				pMem := memory.New(pDB)
+				pMem := memory.New(pDB, nil)
 				pMem.Store(
 					"Default persona created on first run",
 					"User should onboard with identity, tone, and skills using the onboard tool",
@@ -51,7 +53,7 @@ func main() {
 			sDir := pm.SharedDir()
 			sDB, sErr := db.Open(sDir)
 			if sErr == nil {
-				sMem := memory.New(sDB)
+				sMem := memory.New(sDB, nil)
 				sMem.Store(
 					"Default persona auto-created on first run",
 					"User should create a proper persona with onboard tool",
@@ -70,6 +72,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer embedding.CloseEmbedder()
+	globalEmb = emb
 
 	// Open active persona DB (or default to base dir)
 	activePersonaName := ""
@@ -202,7 +205,7 @@ func main() {
 	skillsStore := skills.New(database, dir)
 
 	// Memory store
-	store := memory.New(database)
+	store := memory.New(database, emb)
 
 	// Evolution engine
 	eng := evolution.NewEngine(pm, database, emb)
@@ -218,7 +221,7 @@ func main() {
 		case "store":
 			var sharedMem *memory.Store
 			if sharedDB != nil {
-				sharedMem = memory.New(sharedDB)
+				sharedMem = memory.New(sharedDB, emb)
 			}
 			return handleStore(store, sharedMem, searcher, args)
 		case "review":
@@ -329,6 +332,10 @@ func main() {
 			return handleRestore(pm, store, args)
 		case "backup_status":
 			return handleBackupStatus(store)
+		case "suggest_skills":
+			return handleSuggestSkills(store, args)
+		case "skill_context":
+			return handleSkillContext(store, args)
 		default:
 			return nil, fmt.Errorf("unknown tool: %s", name)
 		}
@@ -366,6 +373,11 @@ func main() {
 		case uri == "backup://status":
 			return handleBackupStatus(store)
 		default:
+			if strings.HasPrefix(uri, "memory://skills/") && strings.HasSuffix(uri, "/memories") {
+				skillName := strings.TrimPrefix(uri, "memory://skills/")
+				skillName = strings.TrimSuffix(skillName, "/memories")
+				return handleSkillMemoriesResource(store, skillName)
+			}
 			return nil, fmt.Errorf("unknown resource: %s", uri)
 		}
 	})

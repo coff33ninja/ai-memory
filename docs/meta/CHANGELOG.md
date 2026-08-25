@@ -5,6 +5,21 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2026-08-25
+
+### Added
+- ML-embedded skill-aware memory system: memories are automatically tagged with relevant skills based on cosine similarity of embeddings
+- `suggest_skills` tool: suggests relevant skills for a query based on semantic similarity
+- `skill_context` tool: retrieves memories related to a specific skill
+- `memory://skills/{name}/memories` resource: get memories tagged with a specific skill
+- Skill tags and scores stored in memories table (`skill_tags`, `skill_scores` columns)
+- Schema migration for existing databases
+
+### Changed
+- Memory store now accepts embedder parameter for auto-tagging
+- Search results include skill tags when available
+- Skills embedding cache with periodic refresh
+
 ## [0.1.9] - 2026-07-20
 
 ### Fixed
