@@ -5,6 +5,21 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12] - 2026-08-25
+
+### Fixed
+- Graph shared scope was broken: `Graph` struct only held one `*sql.DB`, so all operations (add, query, delete, pathfinding) ignored the shared DB. Added `sharedDB` field, `SetSharedDB()` method, and `connForScope()` helper to route operations to the correct database.
+- Cross-DB node ID collisions: persona and shared DBs have independent autoincrement sequences, so `GetNode(id)` could return the wrong node. Added `GetNodeInScope(id, scope)` and `DeleteNodeInScope(id, scope)` for scope-aware lookups.
+- `SearchNodes` with empty scope now merges results from both persona and shared DBs.
+- `Neighbors` and `FindPath` use `resolveNode()` to handle nodes in either DB during traversal.
+- `DeleteNode` no longer blindly tries both DBs — use `DeleteNodeInScope` when scope is known.
+- `graph_delete` MCP tool now accepts optional `scope` parameter for node deletion.
+- `lint.ps1` no longer fails when `gen-icons.ps1` has errors (try/catch skip).
+- FTS5 build tag added to `test.ps1`, `lint.ps1`, `release.yml`, `build.ps1`.
+
+### Added
+- Cross-DB shared scope test (`TestSharedScopeCrossDB`) verifying node creation, retrieval, search, and deletion across persona and shared databases.
+
 ## [0.1.11] - 2026-08-25
 
 ### Fixed

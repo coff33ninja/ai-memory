@@ -234,6 +234,48 @@ CREATE TABLE IF NOT EXISTS backups (
 
 CREATE INDEX IF NOT EXISTS idx_backups_timestamp ON backups(timestamp);
 CREATE INDEX IF NOT EXISTS idx_backups_provider ON backups(provider);
+
+CREATE TABLE IF NOT EXISTS graph_nodes (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	type        TEXT    NOT NULL,
+	label       TEXT    NOT NULL,
+	properties  TEXT    DEFAULT '{}',
+	scope       TEXT    NOT NULL DEFAULT 'private',
+	created_at  TEXT    NOT NULL,
+	updated_at  TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS graph_edges (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	source_id   INTEGER NOT NULL REFERENCES graph_nodes(id) ON DELETE CASCADE,
+	target_id   INTEGER NOT NULL REFERENCES graph_nodes(id) ON DELETE CASCADE,
+	edge_type   TEXT    NOT NULL,
+	properties  TEXT    DEFAULT '{}',
+	weight      REAL    DEFAULT 1.0,
+	created_at  TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_type ON graph_nodes(type);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_label ON graph_nodes(label);
+CREATE INDEX IF NOT EXISTS idx_graph_nodes_scope ON graph_nodes(scope);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_id);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_id);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_type ON graph_edges(edge_type);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_source_type ON graph_edges(source_id, edge_type);
+CREATE INDEX IF NOT EXISTS idx_graph_edges_target_type ON graph_edges(target_id, edge_type);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS graph_nodes_fts USING fts5(label, properties, content=graph_nodes, content_rowid=id);
+
+CREATE TRIGGER IF NOT EXISTS graph_nodes_ai AFTER INSERT ON graph_nodes BEGIN
+	INSERT INTO graph_nodes_fts(rowid, label, properties) VALUES (new.id, new.label, new.properties);
+END;
+CREATE TRIGGER IF NOT EXISTS graph_nodes_ad AFTER DELETE ON graph_nodes BEGIN
+	INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, properties) VALUES('delete', old.id, old.label, old.properties);
+END;
+CREATE TRIGGER IF NOT EXISTS graph_nodes_au AFTER UPDATE ON graph_nodes BEGIN
+	INSERT INTO graph_nodes_fts(graph_nodes_fts, rowid, label, properties) VALUES('delete', old.id, old.label, old.properties);
+	INSERT INTO graph_nodes_fts(rowid, label, properties) VALUES (new.id, new.label, new.properties);
+END;
 `
 
 type DB struct {

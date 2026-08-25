@@ -64,7 +64,7 @@ jobs:
           $env:CC = "zig cc"
           $env:CGO_CFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
           $env:CGO_LDFLAGS = "-mcpu=x86_64_v2 -fno-sanitize=all -Wno-error=unused-command-line-argument"
-          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ai-memory-server.exe ./cmd/ai-memory-server/
+          go build -tags fts5 -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ai-memory-server.exe ./cmd/ai-memory-server/
 
       - name: Extract changelog
         id: changelog

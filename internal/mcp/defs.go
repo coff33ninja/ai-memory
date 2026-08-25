@@ -611,6 +611,87 @@ var DefaultTools = []ToolDef{
 			"required": []string{"skill"},
 		},
 	},
+	{
+		Name:        "graph_add_node",
+		Description: "Add a node to the knowledge graph",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"type":       map[string]interface{}{"type": "string", "enum": []string{"memory", "entity", "code", "project", "tool", "concept", "person"}, "description": "Node type"},
+				"label":      map[string]interface{}{"type": "string", "description": "Node label"},
+				"scope":      map[string]interface{}{"type": "string", "enum": []string{"private", "shared"}, "description": "private = current persona only, shared = visible to all (default: private)"},
+				"properties": map[string]interface{}{"type": "object", "description": "Arbitrary key-value metadata"},
+			},
+			"required": []string{"type", "label"},
+		},
+	},
+	{
+		Name:        "graph_add_edge",
+		Description: "Add an edge between two nodes in the knowledge graph",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"source_id": map[string]interface{}{"type": "integer", "description": "Source node ID"},
+				"target_id": map[string]interface{}{"type": "integer", "description": "Target node ID"},
+				"edge_type": map[string]interface{}{"type": "string", "enum": []string{"thematic", "temporal", "causal", "uses", "created", "calls", "defines", "about", "relates_to", "contradicts", "supports"}, "description": "Edge type"},
+				"weight":    map[string]interface{}{"type": "number", "description": "Edge weight (default 1.0)"},
+				"properties": map[string]interface{}{"type": "object", "description": "Arbitrary key-value metadata"},
+			},
+			"required": []string{"source_id", "target_id", "edge_type"},
+		},
+	},
+	{
+		Name:        "graph_query",
+		Description: "Search nodes in the knowledge graph by text or type",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"query": map[string]interface{}{"type": "string", "description": "FTS5 search query"},
+				"type":  map[string]interface{}{"type": "string", "description": "Filter by node type"},
+				"scope": map[string]interface{}{"type": "string", "description": "Filter by scope (default: private)"},
+				"limit": map[string]interface{}{"type": "integer", "description": "Max results (default 20)"},
+			},
+		},
+	},
+	{
+		Name:        "graph_neighbors",
+		Description: "Get neighboring nodes of a given node in the knowledge graph",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"node_id":   map[string]interface{}{"type": "integer", "description": "Node ID to get neighbors for"},
+				"edge_type": map[string]interface{}{"type": "string", "description": "Filter by edge type"},
+				"max_depth": map[string]interface{}{"type": "integer", "description": "Max traversal depth (default 1)"},
+			},
+			"required": []string{"node_id"},
+		},
+	},
+	{
+		Name:        "graph_find_path",
+		Description: "Find shortest path between two nodes in the knowledge graph",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"source_id": map[string]interface{}{"type": "integer", "description": "Source node ID"},
+				"target_id": map[string]interface{}{"type": "integer", "description": "Target node ID"},
+				"max_depth": map[string]interface{}{"type": "integer", "description": "Max search depth (default 5)"},
+			},
+			"required": []string{"source_id", "target_id"},
+		},
+	},
+	{
+		Name:        "graph_delete",
+		Description: "Delete a node or edge from the knowledge graph",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"type":  map[string]interface{}{"type": "string", "enum": []string{"node", "edge"}, "description": "What to delete"},
+				"id":    map[string]interface{}{"type": "integer", "description": "ID of node or edge to delete"},
+				"scope": map[string]interface{}{"type": "string", "enum": []string{"private", "shared"}, "description": "Which DB to delete from (node only). Default: private"},
+			},
+			"required": []string{"type", "id"},
+		},
+	},
 }
 
 var DefaultResources = []ResourceDef{

@@ -10,6 +10,7 @@ import (
 	"github.com/coff33ninja/ai-memory/internal/db"
 	"github.com/coff33ninja/ai-memory/internal/embedding"
 	"github.com/coff33ninja/ai-memory/internal/evolution"
+	"github.com/coff33ninja/ai-memory/internal/graph"
 	"github.com/coff33ninja/ai-memory/internal/mcp"
 	"github.com/coff33ninja/ai-memory/internal/memory"
 	"github.com/coff33ninja/ai-memory/internal/persona"
@@ -206,6 +207,12 @@ func main() {
 	skillsStore := skills.New(database, dir)
 	skillsStore.SetEmbedder(emb)
 
+	// Graph store
+	gr := graph.New(database.Conn())
+	if sharedDB != nil {
+		gr.SetSharedDB(sharedDB.Conn())
+	}
+
 	// Memory store
 	store := memory.New(database, emb)
 
@@ -348,6 +355,18 @@ func main() {
 			return handleSuggestSkills(store, emb, args)
 		case "skill_context":
 			return handleSkillContext(store, args)
+		case "graph_add_node":
+			return handleGraphAddNode(gr, args)
+		case "graph_add_edge":
+			return handleGraphAddEdge(gr, args)
+		case "graph_query":
+			return handleGraphQuery(gr, args)
+		case "graph_neighbors":
+			return handleGraphNeighbors(gr, args)
+		case "graph_find_path":
+			return handleGraphFindPath(gr, args)
+		case "graph_delete":
+			return handleGraphDelete(gr, args)
 		default:
 			return nil, fmt.Errorf("unknown tool: %s", name)
 		}

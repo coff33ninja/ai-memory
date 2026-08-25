@@ -28,8 +28,10 @@ Write-Host "CGO_LDFLAGS: $env:CGO_LDFLAGS" -ForegroundColor Gray
 
 # Generate icon resource (.syso) for embedding
 Write-Host "Generating icon resource..." -ForegroundColor Gray
-& "$PSScriptRoot\gen-icons.ps1"
-if (-not $?) { exit 1 }
+try { & "$PSScriptRoot\gen-icons.ps1" 2>$null } catch {}
+if (-not (Test-Path "$PSScriptRoot\..\ai-memory-server.exe.syso")) {
+    Write-Host "  (skipped - gen-icons.ps1 failed)" -ForegroundColor Yellow
+}
 
 $ldflags = "-s -w -X main.Version=$ver"
 if (-not $Release) {
@@ -37,7 +39,7 @@ if (-not $Release) {
 }
 
 Write-Host "Building..." -ForegroundColor Gray
-go build -ldflags="$ldflags" -o $Output .\cmd\ai-memory-server\
+go build -tags fts5 -ldflags="$ldflags" -o $Output .\cmd\ai-memory-server\
 if (-not $?) { exit 1 }
 
 $sizeBytes = (Get-Item $Output).Length

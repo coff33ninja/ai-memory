@@ -38,7 +38,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Build OK" -ForegroundColor Green
 
 # Run unit tests
-$testArgs = @("test", "./...", "-count=1", "-v")
+$testArgs = @("test", "-tags", "fts5", "./...", "-count=1", "-v")
 if ($Short) {
     $testArgs += "-short"
 }
