@@ -33,9 +33,23 @@ var (
 	embedder  *Embedder
 )
 
+type computeRequest struct {
+	texts []string
+	out   chan computeResult
+}
+
+type computeResult struct {
+	results [][]float32
+	err     error
+}
+
 type Embedder struct {
-	session *ort.DynamicAdvancedSession
-	tok     *tokenizer.Tokenizer
+	session  *ort.DynamicAdvancedSession
+	tok      *tokenizer.Tokenizer
+	runCh    chan computeRequest
+	stopCh   chan struct{}
+	modelPath string
+	readyCh  chan error
 }
 
 func (e *Embedder) Compute(text string) ([]float32, error) {
@@ -53,7 +67,47 @@ func (e *Embedder) ComputeBatch(texts []string) ([][]float32, error) {
 	if len(texts) == 0 {
 		return nil, nil
 	}
+	req := computeRequest{texts: texts, out: make(chan computeResult, 1)}
+	e.runCh <- req
+	res := <-req.out
+	return res.results, res.err
+}
 
+func (e *Embedder) Close() {
+	close(e.stopCh)
+	if e.session != nil {
+		e.session.Destroy()
+	}
+}
+
+func (e *Embedder) runLoop() {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	inputNames := []string{"input_ids", "attention_mask", "token_type_ids"}
+	outputNames := []string{"token_embeddings", "sentence_embedding"}
+
+	session, err := ort.NewDynamicAdvancedSession(e.modelPath, inputNames, outputNames, nil)
+	if err != nil {
+		e.readyCh <- fmt.Errorf("create session: %w", err)
+		close(e.readyCh)
+		return
+	}
+	e.session = session
+	close(e.readyCh)
+
+	for {
+		select {
+		case req := <-e.runCh:
+			results, err := e.runBatch(req.texts)
+			req.out <- computeResult{results: results, err: err}
+		case <-e.stopCh:
+			return
+		}
+	}
+}
+
+func (e *Embedder) runBatch(texts []string) ([][]float32, error) {
 	inputBatch := make([]tokenizer.EncodeInput, len(texts))
 	for i, s := range texts {
 		inputBatch[i] = tokenizer.NewSingleEncodeInput(tokenizer.NewRawInputSequence(s))
@@ -130,12 +184,6 @@ func (e *Embedder) ComputeBatch(texts []string) ([][]float32, error) {
 	return results, nil
 }
 
-func (e *Embedder) Close() {
-	if e.session != nil {
-		e.session.Destroy()
-	}
-}
-
 func InitEmbedder() (*Embedder, error) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -169,15 +217,19 @@ func InitEmbedder() (*Embedder, error) {
 		return nil, fmt.Errorf("load tokenizer: %w", err)
 	}
 
-	inputNames := []string{"input_ids", "attention_mask", "token_type_ids"}
-	outputNames := []string{"token_embeddings", "sentence_embedding"}
-
-	session, err := ort.NewDynamicAdvancedSession(modelPath, inputNames, outputNames, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create session: %w", err)
+	embedder = &Embedder{
+		tok:       tk,
+		runCh:     make(chan computeRequest, 8),
+		stopCh:    make(chan struct{}),
+		modelPath: modelPath,
+		readyCh:   make(chan error, 1),
 	}
+	go embedder.runLoop()
 
-	embedder = &Embedder{session: session, tok: tk}
+	ready := <-embedder.readyCh
+	if ready != nil {
+		return nil, ready
+	}
 	return embedder, nil
 }
 

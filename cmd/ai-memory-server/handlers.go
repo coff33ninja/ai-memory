@@ -223,10 +223,13 @@ func handleSkillsSearch(skills *skills.Store, args map[string]interface{}) (inte
 	return sb.String(), nil
 }
 
-func handleSkillsIndex(skills *skills.Store) (interface{}, error) {
+func handleSkillsIndex(skills *skills.Store, mem *memory.Store) (interface{}, error) {
 	n, err := skills.Index()
 	if err != nil {
 		return nil, err
+	}
+	if mem != nil {
+		mem.RefreshSkillCache()
 	}
 	return fmt.Sprintf("Indexed %d skills.", n), nil
 }

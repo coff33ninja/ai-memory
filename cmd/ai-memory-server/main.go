@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/coff33ninja/ai-memory/internal/db"
@@ -203,6 +204,7 @@ func main() {
 
 	// Skills store
 	skillsStore := skills.New(database, dir)
+	skillsStore.SetEmbedder(emb)
 
 	// Memory store
 	store := memory.New(database, emb)
@@ -216,7 +218,17 @@ func main() {
 	srv.RegisterResources(mcp.DefaultResources...)
 	srv.RegisterTemplates(mcp.DefaultTemplates...)
 	srv.RegisterPrompts(mcp.DefaultPrompts...)
-	srv.SetToolHandler(func(name string, args map[string]interface{}) (interface{}, error) {
+	srv.SetToolHandler(func(name string, args map[string]interface{}) (result interface{}, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				buf := make([]byte, 4096)
+				n := runtime.Stack(buf, false)
+				trace := fmt.Sprintf("PANIC in %s: %v\nStack:\n%s\n", name, r, buf[:n])
+				fmt.Fprint(os.Stderr, trace)
+				_ = os.WriteFile(filepath.Join(os.TempDir(), "ai-memory-panic.log"), []byte(trace), 0644)
+				err = fmt.Errorf("panic: %v", r)
+			}
+		}()
 		switch name {
 		case "store":
 			var sharedMem *memory.Store
@@ -245,7 +257,7 @@ func main() {
 		case "skills_search":
 			return handleSkillsSearch(skillsStore, args)
 		case "skills_index":
-			return handleSkillsIndex(skillsStore)
+			return handleSkillsIndex(skillsStore, store)
 		case "store_skill_usage":
 			return handleStoreSkillUsage(store, args)
 		case "list_skill_usage":
@@ -333,7 +345,7 @@ func main() {
 		case "backup_status":
 			return handleBackupStatus(store)
 		case "suggest_skills":
-			return handleSuggestSkills(store, args)
+			return handleSuggestSkills(store, emb, args)
 		case "skill_context":
 			return handleSkillContext(store, args)
 		default:

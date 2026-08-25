@@ -5,6 +5,22 @@ All notable changes to ai-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-08-25
+
+### Fixed
+- ORT thread-affinity crash: embedding session now runs in a dedicated goroutine with `runtime.LockOSThread()`, preventing crashes when MCP handlers call `Compute()` from different OS threads
+- Insertion sort bug in `SuggestSkills`: inner loop used `j++` instead of `j--`, causing index-out-of-range panics
+- `handleSuggestSkills` no longer creates and destroys the embedder per-call — uses the global embedder
+- `handleSkillsIndex` now refreshes the skill cache after indexing
+
+### Added
+- Skills compute and store embeddings during `Index()` — `suggest_skills` returns meaningful similarity scores
+- `skills.Store.SetEmbedder()` method for injecting the global embedder
+- Panic recovery in tool handler with stack trace logging to `%TEMP%\ai-memory-panic.log`
+
+### Changed
+- Removed stale `ai-memory-server.exe.sha256` checksum file
+
 ## [0.1.10] - 2026-08-25
 
 ### Added

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/coff33ninja/ai-memory/internal/db"
+	"github.com/coff33ninja/ai-memory/internal/embedding"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,10 +19,15 @@ const skillsRepo = "https://github.com/coff33ninja/ai-skills"
 type Store struct {
 	db  *db.DB
 	dir string
+	emb *embedding.Embedder
 }
 
 func New(d *db.DB, baseDir string) *Store {
 	return &Store{db: d, dir: filepath.Join(baseDir, "skills")}
+}
+
+func (s *Store) SetEmbedder(emb *embedding.Embedder) {
+	s.emb = emb
 }
 
 func (s *Store) EnsureCloned() error {
@@ -123,6 +129,19 @@ func (s *Store) Index() (int, error) {
 			fileCount++
 		}
 		conn.Exec("UPDATE skills SET file_count = ? WHERE id = ?", fileCount, skillID)
+
+		// Compute embedding for skill description + body
+		if s.emb != nil {
+			text := desc + " " + body
+			if len(text) > 512 {
+				text = text[:512]
+			}
+			emb, err := s.emb.Compute(text)
+			if err == nil && len(emb) > 0 {
+				conn.Exec("UPDATE skills SET embedding = ? WHERE id = ?", embedding.Float32ToBytes(emb), skillID)
+			}
+		}
+
 		total++
 	}
 

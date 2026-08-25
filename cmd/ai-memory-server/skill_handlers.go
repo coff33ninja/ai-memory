@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/coff33ninja/ai-memory/internal/embedding"
 	"github.com/coff33ninja/ai-memory/internal/memory"
 )
 
-func handleSuggestSkills(store *memory.Store, args map[string]interface{}) (interface{}, error) {
+func handleSuggestSkills(store *memory.Store, emb *embedding.Embedder, args map[string]interface{}) (interface{}, error) {
 	query, _ := args["query"].(string)
 	if query == "" {
 		return nil, fmt.Errorf("query is required")
@@ -18,18 +19,20 @@ func handleSuggestSkills(store *memory.Store, args map[string]interface{}) (inte
 		topK = int(k)
 	}
 
-	emb, err := embedding.InitEmbedder()
-	if err != nil {
-		return nil, fmt.Errorf("init embedder: %w", err)
+	if emb == nil {
+		return nil, fmt.Errorf("embedder not initialized")
 	}
-	defer embedding.CloseEmbedder()
 
+	fmt.Fprintf(os.Stderr, "[suggest_skills] computing embedding for: %s\n", query)
 	queryEmb, err := emb.Compute(query)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[suggest_skills] compute error: %v\n", err)
 		return nil, fmt.Errorf("compute query embedding: %w", err)
 	}
+	fmt.Fprintf(os.Stderr, "[suggest_skills] got %d dims, calling SuggestSkillsForQuery\n", len(queryEmb))
 
 	results := store.SuggestSkillsForQuery(queryEmb, topK)
+	fmt.Fprintf(os.Stderr, "[suggest_skills] got %d results\n", len(results))
 	if len(results) == 0 {
 		return "No relevant skills found for this query.", nil
 	}

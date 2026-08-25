@@ -141,7 +141,7 @@ func SuggestSkills(queryEmb []float32, skills []SkillEmbedding, topK int) []Sugg
 	}
 
 	for i := 1; i < len(results); i++ {
-		for j := i; j > 0 && results[j].score > results[j-1].score; j++ {
+		for j := i; j > 0 && results[j].score > results[j-1].score; j-- {
 			results[j], results[j-1] = results[j-1], results[j]
 		}
 	}
